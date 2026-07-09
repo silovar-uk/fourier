@@ -43,14 +43,16 @@
   - `manifest.webmanifest`
   - `sw.js`
   - `icon.svg`
+- GitHub Pages用ワークフロー
+  - `.github/workflows/deploy-pages.yml`
+  - `.nojekyll`
 
 ## GitHub Pagesでの公開
 
-このリポジトリは静的ファイルのみで動作します。GitHub Pages の設定で、`main` ブランチの root を公開元にしてください。
+このリポジトリには GitHub Pages 用の Actions ワークフローを入れています。Pages の設定で GitHub Actions を公開元にしてください。
 
 ```text
-Settings → Pages → Build and deployment → Source: Deploy from a branch
-Branch: main / root
+Settings → Pages → Build and deployment → Source: GitHub Actions
 ```
 
 公開後は以下のようなURLになります。
@@ -62,14 +64,16 @@ https://silovar-uk.github.io/fourier/
 ## ファイル構成
 
 ```text
-index.html              アプリ本体のHTML
-styles.css              UIスタイル
-app.js                  進捗管理・描画・クイズなどのロジック
-data.js                 カリキュラム、クイズ、参考リンク
-manifest.webmanifest    PWA設定
-sw.js                   オフラインキャッシュ
-icon.svg                アプリアイコン
-README.md               この説明
+index.html                         アプリ本体のHTML
+styles.css                         UIスタイル
+app.js                             進捗管理・描画・クイズなどのロジック
+data.js                            カリキュラム、クイズ、参考リンク
+manifest.webmanifest               PWA設定
+sw.js                              オフラインキャッシュ
+icon.svg                           アプリアイコン
+.nojekyll                          GitHub Pages用
+.github/workflows/deploy-pages.yml GitHub Pagesデプロイ
+README.md                          この説明
 ```
 
 ## 参考リンク
