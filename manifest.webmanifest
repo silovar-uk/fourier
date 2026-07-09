@@ -1,0 +1,17 @@
+{
+  "name": "Fourier Quest",
+  "short_name": "Fourier",
+  "description": "フーリエ変換を直感から大学レベルまで段階的に学ぶ視覚化アプリ。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
