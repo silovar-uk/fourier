@@ -8,6 +8,24 @@
 - 波形を触りながら、時間領域と周波数領域の違いを掴む
 - フーリエ級数、複素数、DFT/FFT、サンプリング、窓関数、STFTまで順番に進む
 - 学習モチベーションを、気合いではなく仕組みで支える
+- 高校生でも入れる言い換えから始め、最終的に大学教科書レベルの言葉へ接続する
+
+## 教材設計
+
+各章は、以下の順番で読めるようにしています。
+
+- 到達目標
+- 高校生向けの言い換え
+- 教科書メモ
+- 本文
+- 式の読み方
+- 現実の世界では
+- よくある誤解
+- ドリル
+- 実務演習
+- チェックポイント
+
+「やさしい説明」だけで終わらせず、大学教科書で使う用語や式へ接続します。一方で、音声、画像、スタジアム音声、PV、チケット発券数、センサーデータなど、現実の信号を例にして理解できるようにしています。
 
 ## 主な機能
 
@@ -88,6 +106,8 @@ README.md                          この説明
   https://see.stanford.edu/Course/EE261
 - The Scientist and Engineer's Guide to Digital Signal Processing  
   https://www.dspguide.com/
+- Khan Academy: Trigonometry  
+  https://www.khanacademy.org/math/trigonometry
 
 ## 実装メモ
 
