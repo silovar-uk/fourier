@@ -165,6 +165,7 @@ function renderLesson() {
   const m = FOURIER_MODULES.find(item => item.id === selectedModuleId) || FOURIER_MODULES[0];
   const done = !!state.completed[m.id];
   const conf = state.confidence[m.id];
+
   els.lessonPanel.innerHTML = `
     <div class="lesson-top">
       <div>
@@ -175,11 +176,16 @@ function renderLesson() {
       <span class="level-pill">${levelLabel(m.level)} / ${m.minutes}分 / ${m.xp}XP</span>
     </div>
     <div class="concept-row">${m.concepts.map(c => `<span>${c}</span>`).join('')}</div>
-    <div class="lesson-block"><h4>到達目標</h4><p>${m.goal}</p></div>
-    <div class="lesson-block"><h4>本文</h4><p>${m.story}</p></div>
-    <div class="lesson-block"><h4>ドリル</h4><ul>${m.drills.map(d => `<li>${d}</li>`).join('')}</ul></div>
-    <div class="lesson-block"><h4>実務演習</h4><p>${m.practice}</p></div>
-    <div class="lesson-block"><h4>チェックポイント</h4><p>${m.checkpoint}</p></div>
+    ${lessonTextBlock('到達目標', m.goal)}
+    ${lessonTextBlock('高校生向けの言い換え', m.bridge)}
+    ${lessonTextBlock('教科書メモ', m.textbook)}
+    ${lessonTextBlock('本文', m.story)}
+    ${lessonTextBlock('式の読み方', m.equation)}
+    ${lessonListBlock('現実の世界では', m.realWorld)}
+    ${lessonTextBlock('よくある誤解', m.commonMistake)}
+    ${lessonListBlock('ドリル', m.drills)}
+    ${lessonTextBlock('実務演習', m.practice)}
+    ${lessonTextBlock('チェックポイント', m.checkpoint)}
     <div class="confidence-row">
       <strong>今の自信</strong>
       <div class="confidence-buttons">
@@ -202,6 +208,17 @@ function renderLesson() {
       showToast('自信度を保存しました');
     });
   });
+}
+
+function lessonTextBlock(title, body) {
+  if (!body) return '';
+  const paragraphs = String(body).split('\n').filter(Boolean).map(text => `<p>${text}</p>`).join('');
+  return `<div class="lesson-block"><h4>${title}</h4>${paragraphs}</div>`;
+}
+
+function lessonListBlock(title, items) {
+  if (!items || !items.length) return '';
+  return `<div class="lesson-block"><h4>${title}</h4><ul>${items.map(item => `<li>${item}</li>`).join('')}</ul></div>`;
 }
 
 function levelLabel(level) {
