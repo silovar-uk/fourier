@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Fourier Quest Icon</title>
+  <desc id="desc">A wave changing into frequency bars.</desc>
+  <defs>
+    <linearGradient id="bg" x1="64" y1="32" x2="456" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="72" y1="140" x2="440" y2="356" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.55" stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="394" cy="118" r="58" fill="#ef4444" opacity="0.22"/>
+  <circle cx="104" cy="402" r="82" fill="#22d3ee" opacity="0.13"/>
+  <path d="M64 268c44-104 88-104 132 0s88 104 132 0 88-104 132 0" fill="none" stroke="url(#wave)" stroke-width="34" stroke-linecap="round"/>
+  <g fill="#f8fafc">
+    <rect x="310" y="306" width="28" height="96" rx="14" opacity="0.96"/>
+    <rect x="356" y="250" width="28" height="152" rx="14" opacity="0.86"/>
+    <rect x="402" y="190" width="28" height="212" rx="14" opacity="0.76"/>
+  </g>
+  <path d="M76 120h150" stroke="#f8fafc" stroke-width="18" stroke-linecap="round" opacity="0.22"/>
+  <path d="M76 158h104" stroke="#f8fafc" stroke-width="18" stroke-linecap="round" opacity="0.15"/>
+</svg>
