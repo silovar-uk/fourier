@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#111827" />
-  <meta name="description" content="フーリエ変換を直感から大学レベルまで段階的に学ぶ、視覚化つきカリキュラムアプリ。" />
+  <meta name="theme-color" content="#f7f4ed" />
+  <meta name="description" content="フーリエ変換を、一歩ずつ触りながら大学レベルまで学ぶカリキュラムアプリ。" />
   <title>Fourier Quest｜フーリエ変換 学習アプリ</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -13,166 +13,136 @@
 </head>
 <body>
   <div class="app-shell">
-    <header class="hero" id="top">
-      <nav class="topbar" aria-label="主要メニュー">
-        <a class="brand" href="#top" aria-label="Fourier Quest トップへ">
-          <span class="brand-mark" aria-hidden="true">∿</span>
-          <span>
-            <strong>Fourier Quest</strong>
-            <small>直感 → 大学レベル</small>
-          </span>
-        </a>
-        <div class="top-actions">
-          <button class="ghost-button" id="resetBtn" type="button">進捗リセット</button>
-          <button class="primary-button small" id="todayBtn" type="button">今日の一手</button>
-        </div>
-      </nav>
-
-      <section class="hero-grid">
-        <div class="hero-copy">
-          <p class="eyebrow">Fourier Transform Curriculum App</p>
-          <h1>まず60秒、波を分解してみる。</h1>
-          <p class="lead">予想して、触って、説明してから式へ進む。高校数学の三角関数を入口に、フーリエ級数、複素数、サンプリング、DFT/FFT、時間周波数解析まで段階的に学びます。</p>
-          <div class="hero-cta">
-            <a class="primary-button" href="#daily">60秒ミッションを始める</a>
-            <a class="secondary-button" href="#curriculum">続きから学ぶ</a>
-            <a class="secondary-button" href="#lab">波形ラボで触る</a>
-          </div>
-        </div>
-
-        <aside class="status-card" aria-label="学習状況">
-          <div class="status-head">
-            <span>現在地</span>
-            <strong id="rankLabel">準備中</strong>
-          </div>
-          <div class="progress-ring" aria-hidden="true">
-            <svg viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="52"></circle>
-              <circle id="ringProgress" cx="60" cy="60" r="52"></circle>
-            </svg>
-            <span id="progressPercent">0%</span>
-          </div>
-          <dl class="stats-grid">
-            <div><dt>XP</dt><dd id="xpValue">0</dd></div>
-            <div><dt>連続</dt><dd id="streakValue">0日</dd></div>
-            <div><dt>完了</dt><dd id="doneValue">0/0</dd></div>
-            <div><dt>自信</dt><dd id="confidenceValue">--</dd></div>
-          </dl>
-        </aside>
-      </section>
+    <header class="topbar">
+      <button class="brand" data-screen-target="home" type="button" aria-label="ホームへ戻る">
+        <span class="brand-mark" aria-hidden="true">∿</span>
+        <span><strong>Fourier Quest</strong><small>一歩ずつ、波がわかる</small></span>
+      </button>
+      <div class="top-progress" aria-label="全体の学習進捗">
+        <span id="progressPercent">0%</span>
+        <div class="top-progress-track"><span id="topProgressBar"></span></div>
+      </div>
+      <button class="icon-button" id="openMapBtn" type="button" aria-label="学習マップを開く">☰</button>
     </header>
 
     <main>
-      <section class="panel daily-panel" id="daily" aria-labelledby="dailyTitle">
-        <div class="daily-copy">
-          <p class="section-kicker">60-Second Mission</p>
-          <h2 id="dailyTitle">先に予想する</h2>
-          <p id="dailyMissionText">位相だけを動かすと、周波数成分の強さは変わる？</p>
-          <div class="prediction-row" aria-label="予想を選ぶ">
-            <button class="prediction-button" data-prediction="change" type="button">変わると思う</button>
-            <button class="prediction-button" data-prediction="same" type="button">変わらないと思う</button>
+      <section class="screen active" data-screen="home" aria-labelledby="homeTitle">
+        <div class="home-wrap">
+          <div class="home-intro">
+            <p class="eyebrow" id="homeEyebrow">YOUR NEXT STEP</p>
+            <h1 id="homeTitle">今日は、ここだけ。</h1>
+            <p>先の全部を覚えなくて大丈夫。目の前の波をひとつ触れば、次の道が開きます。</p>
           </div>
-          <p class="mission-feedback" id="missionFeedback" aria-live="polite">予想を選ぶと、波形ラボで確かめられます。</p>
-        </div>
-        <button class="primary-button" id="completeDailyBtn" type="button" disabled>答えを確認する</button>
-      </section>
 
-      <section class="section" id="lab">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker">Visual Lab</p>
-            <h2>波形ラボ</h2>
-            <p>スライダーを動かすと、時間領域の波形と周波数成分が同時に変わります。まずは「混ぜる → 分解される」を身体で掴む場所。</p>
-          </div>
-          <div class="mode-tabs" role="tablist" aria-label="波形プリセット">
-            <button class="tab active" data-preset="mix" type="button">ミックス</button>
-            <button class="tab" data-preset="square" type="button">矩形波</button>
-            <button class="tab" data-preset="chirp" type="button">チャープ</button>
-          </div>
-        </div>
+          <section class="quest-card" id="daily" aria-labelledby="dailyTitle">
+            <div class="quest-orb" aria-hidden="true"><span>?</span></div>
+            <div class="quest-body">
+              <p class="card-kicker">60秒クエスト</p>
+              <h2 id="dailyTitle">まず、予想する</h2>
+              <p id="dailyMissionText">位相だけを動かすと、周波数成分の強さは変わる？</p>
+              <div class="prediction-row" aria-label="予想を選ぶ">
+                <button class="choice-button" data-prediction="change" type="button">変わる</button>
+                <button class="choice-button" data-prediction="same" type="button">変わらない</button>
+              </div>
+              <p class="mission-feedback" id="missionFeedback" aria-live="polite">どちらか選んでから、答えを見てみよう。</p>
+            </div>
+            <button class="round-next" id="completeDailyBtn" type="button" disabled aria-label="答えを確認する">→</button>
+          </section>
 
-        <div class="lab-grid">
-          <div class="canvas-card">
-            <div class="canvas-title"><span>時間領域</span><strong>どんな形か</strong></div>
-            <canvas id="waveCanvas" width="860" height="320" role="img" aria-label="時間領域の波形。横軸は時間、縦軸は振幅。"></canvas>
-          </div>
-          <div class="canvas-card">
-            <div class="canvas-title"><span>周波数領域</span><strong>何Hzが強いか</strong></div>
-            <canvas id="spectrumCanvas" width="860" height="320" role="img" aria-label="周波数領域の棒グラフ。横軸は周波数ビン、縦軸は振幅。"></canvas>
-          </div>
-        </div>
+          <section class="continue-card" id="continueCard" aria-labelledby="continueTitle">
+            <div class="continue-number" id="continueModuleNo">01</div>
+            <div class="continue-copy">
+              <p class="card-kicker">つづきから</p>
+              <h2 id="continueTitle">そもそも波とは何か</h2>
+              <p id="continueSubtitle">変化を「量」として記録し、形として読む</p>
+              <div class="mini-progress"><span id="continueStepLabel">最初の一歩</span><span id="continueMinutes">約8分</span></div>
+            </div>
+            <button class="primary-button" id="continueLessonBtn" type="button">はじめる <span aria-hidden="true">→</span></button>
+          </section>
 
-        <div class="control-panel" aria-label="波形コントロール">
-          <label>低い波 2Hz <output id="amp1Value">1.00</output><input id="amp1" type="range" min="0" max="1.5" step="0.05" value="1.00"></label>
-          <label>真ん中の波 5Hz <output id="amp2Value">0.55</output><input id="amp2" type="range" min="0" max="1.5" step="0.05" value="0.55"></label>
-          <label>高い波 11Hz <output id="amp3Value">0.30</output><input id="amp3" type="range" min="0" max="1.5" step="0.05" value="0.30"></label>
-          <label>位相のずれ <output id="phaseValue">0.80 rad</output><input id="phase" type="range" min="0" max="6.28" step="0.01" value="0.80"></label>
-          <label>ノイズ <output id="noiseValue">0.04</output><input id="noise" type="range" min="0" max="0.8" step="0.02" value="0.04"></label>
-        </div>
-        <p class="lab-summary" id="labSummary" aria-live="polite"></p>
-      </section>
+          <div class="journey-preview" id="journeyPreview" aria-label="現在地と次の章"></div>
 
-      <section class="section" id="curriculum">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker">Learning Roadmap</p>
-            <h2>大学レベルまでのカリキュラム</h2>
-            <p>順番に進めると「式を眺める」から「式の意味を説明できる」へ移動できます。各章は本文・ドリル・実務演習・つまずきログ付き。</p>
-          </div>
-          <div class="filter-row" aria-label="学習フィルター">
-            <button class="chip active" data-filter="all" type="button">全部</button>
-            <button class="chip" data-filter="intro" type="button">直感</button>
-            <button class="chip" data-filter="math" type="button">数学</button>
-            <button class="chip" data-filter="applied" type="button">応用</button>
-            <button class="chip" data-filter="advanced" type="button">大学</button>
-          </div>
-        </div>
-        <div class="curriculum-layout">
-          <details class="module-drawer" id="moduleDrawer" open>
-            <summary>全12章の学習地図</summary>
-            <ol class="module-list" id="moduleList"></ol>
+          <details class="quiet-stats">
+            <summary>これまでの記録</summary>
+            <dl class="stats-grid">
+              <div><dt>現在地</dt><dd id="rankLabel">一歩目</dd></div>
+              <div><dt>XP</dt><dd id="xpValue">0</dd></div>
+              <div><dt>連続</dt><dd id="streakValue">0日</dd></div>
+              <div><dt>完了</dt><dd id="doneValue">0/12</dd></div>
+              <div><dt>自信</dt><dd id="confidenceValue">--</dd></div>
+            </dl>
+            <svg class="visually-hidden" viewBox="0 0 120 120" aria-hidden="true"><circle id="ringProgress" cx="60" cy="60" r="52"></circle></svg>
           </details>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="learn" aria-labelledby="learnScreenTitle">
+        <div class="screen-wrap narrow">
+          <div class="screen-head">
+            <button class="back-button" data-screen-target="home" type="button">← ホーム</button>
+            <button class="map-button" id="openMapFromLessonBtn" type="button">学習マップ</button>
+          </div>
           <article class="lesson-panel" id="lessonPanel" aria-live="polite"></article>
         </div>
       </section>
 
-      <section class="section split-section" id="quiz">
-        <div class="panel quiz-panel">
-          <p class="section-kicker">Checkpoint Quiz</p>
-          <h2>理解チェック</h2>
-          <div id="quizBox"></div>
-        </div>
-        <div class="panel note-panel">
-          <p class="section-kicker">Reflection</p>
-          <h2>つまずきログ</h2>
-          <p>わからなかった言葉を残すほど、次に戻る場所が明確になります。勉強の敵は「忘れること」より「どこで詰まったか忘れること」。</p>
-          <textarea id="stuckNote" rows="7" placeholder="例：位相がまだピンとこない。複素数がなぜ必要かを復習する。"></textarea>
-          <button class="secondary-button" id="saveNoteBtn" type="button">ログを保存</button>
+      <section class="screen" data-screen="lab" aria-labelledby="labTitle">
+        <div class="screen-wrap">
+          <div class="screen-head">
+            <button class="back-button" data-screen-target="home" type="button">← ホーム</button>
+            <span class="screen-step">自由に試す場所</span>
+          </div>
+          <div class="section-heading compact">
+            <div><p class="card-kicker">WAVE LAB</p><h2 id="labTitle">波を触ってみる</h2><p>ひとつ動かす。変化を見る。それだけでOK。</p></div>
+            <div class="mode-tabs" role="tablist" aria-label="波形プリセット">
+              <button class="tab active" data-preset="mix" type="button">3つの波</button>
+              <button class="tab" data-preset="square" type="button">四角い波</button>
+              <button class="tab" data-preset="chirp" type="button">変わる波</button>
+            </div>
+          </div>
+          <div class="lab-grid">
+            <div class="canvas-card"><div class="canvas-title"><span>時間で見る</span><strong>どんな形？</strong></div><canvas id="waveCanvas" width="860" height="320" role="img" aria-label="時間領域の波形。横軸は時間、縦軸は振幅。"></canvas></div>
+            <div class="canvas-card"><div class="canvas-title"><span>材料で見る</span><strong>何Hzが強い？</strong></div><canvas id="spectrumCanvas" width="860" height="320" role="img" aria-label="周波数領域の棒グラフ。横軸は周波数ビン、縦軸は振幅。"></canvas></div>
+          </div>
+          <div class="control-panel" aria-label="波形コントロール">
+            <label>低い波 2Hz <output id="amp1Value">1.00</output><input id="amp1" type="range" min="0" max="1.5" step="0.05" value="1.00"></label>
+            <label>真ん中 5Hz <output id="amp2Value">0.55</output><input id="amp2" type="range" min="0" max="1.5" step="0.05" value="0.55"></label>
+            <label>高い波 11Hz <output id="amp3Value">0.30</output><input id="amp3" type="range" min="0" max="1.5" step="0.05" value="0.30"></label>
+            <label>開始位置 <output id="phaseValue">0.80 rad</output><input id="phase" type="range" min="0" max="6.28" step="0.01" value="0.80"></label>
+            <label>ノイズ <output id="noiseValue">0.04</output><input id="noise" type="range" min="0" max="0.8" step="0.02" value="0.04"></label>
+          </div>
+          <p class="lab-summary" id="labSummary" aria-live="polite"></p>
+          <button class="primary-button lab-return" id="returnToLessonBtn" type="button">学習に戻る →</button>
         </div>
       </section>
 
-      <section class="section" id="badges">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker">Motivation System</p>
-            <h2>続けるための仕組み</h2>
-            <p>やる気に頼りすぎないように、短い達成・見える進捗・復帰しやすさを組み込んでいます。</p>
-          </div>
+      <section class="screen" data-screen="review" aria-labelledby="reviewTitle">
+        <div class="screen-wrap narrow">
+          <div class="screen-head"><button class="back-button" data-screen-target="home" type="button">← ホーム</button><span class="screen-step">思い出す時間</span></div>
+          <div class="review-hero"><p class="card-kicker">REVIEW</p><h2 id="reviewTitle">ちょっと、思い出す。</h2><p>忘れたことは失敗やない。戻る場所が見つかった、ということ。</p></div>
+          <section class="review-card quiz-panel"><h3>1問チャレンジ</h3><div id="quizBox"></div></section>
+          <section class="review-card note-panel"><h3>つまずきメモ</h3><textarea id="stuckNote" rows="5" placeholder="まだピンとこない言葉を、ひとつだけ。"></textarea><button class="secondary-button" id="saveNoteBtn" type="button">メモを残す</button></section>
+          <details class="collection"><summary>集めたバッジ</summary><div class="badge-grid" id="badgeGrid"></div></details>
+          <details class="collection"><summary>もっと調べる</summary><ul id="sourceList" class="source-list"></ul></details>
         </div>
-        <div class="badge-grid" id="badgeGrid"></div>
-      </section>
-
-      <section class="section references" id="references">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker">Sources</p>
-            <h2>参考リンク</h2>
-            <p>アプリ内カリキュラムの設計で参照しやすい、入門から大学レベルまでの資料です。</p>
-          </div>
-        </div>
-        <ul id="sourceList" class="source-list"></ul>
       </section>
     </main>
+
+    <nav class="bottom-nav" aria-label="画面を切り替える">
+      <button class="active" data-screen-target="home" type="button"><span aria-hidden="true">●</span>ホーム</button>
+      <button data-screen-target="learn" type="button"><span aria-hidden="true">▶</span>学ぶ</button>
+      <button data-screen-target="lab" type="button"><span aria-hidden="true">∿</span>ラボ</button>
+      <button data-screen-target="review" type="button"><span aria-hidden="true">✓</span>ふりかえり</button>
+    </nav>
+
+    <dialog class="map-dialog" id="mapDialog" aria-labelledby="mapTitle">
+      <div class="dialog-head"><div><p class="card-kicker">YOUR JOURNEY</p><h2 id="mapTitle">学習マップ</h2><p>開いた道だけ、順番に進めます。</p></div><button class="icon-button" id="closeMapBtn" type="button" aria-label="学習マップを閉じる">×</button></div>
+      <div class="filter-row" aria-label="学習フィルター">
+        <button class="chip active" data-filter="all" type="button">全部</button><button class="chip" data-filter="intro" type="button">直感</button><button class="chip" data-filter="math" type="button">数学</button><button class="chip" data-filter="applied" type="button">応用</button><button class="chip" data-filter="advanced" type="button">大学</button>
+      </div>
+      <ol class="module-list" id="moduleList"></ol>
+      <div class="dialog-footer"><button class="ghost-button" id="resetBtn" type="button">進捗をリセット</button></div>
+    </dialog>
   </div>
 
   <script src="data.js"></script>
