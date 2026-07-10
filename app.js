@@ -1,9 +1,11 @@
-const STORAGE_KEY = 'fourier-quest-state-v1';
+const STORAGE_KEY = 'fourier-quest-state-v2';
+const LEGACY_STORAGE_KEY = 'fourier-quest-state-v1';
 const state = loadState();
 let selectedModuleId = state.selectedModuleId || FOURIER_MODULES[0].id;
 let activeFilter = 'all';
 let activePreset = 'mix';
 let quizIndex = state.quizIndex || 0;
+let currentQuizView = null;
 
 const els = {
   moduleList: document.getElementById('moduleList'),
@@ -18,6 +20,9 @@ const els = {
   doneValue: document.getElementById('doneValue'),
   confidenceValue: document.getElementById('confidenceValue'),
   dailyMissionText: document.getElementById('dailyMissionText'),
+  missionFeedback: document.getElementById('missionFeedback'),
+  labSummary: document.getElementById('labSummary'),
+  moduleDrawer: document.getElementById('moduleDrawer'),
   quizBox: document.getElementById('quizBox'),
   stuckNote: document.getElementById('stuckNote'),
   badgeGrid: document.getElementById('badgeGrid'),
@@ -33,6 +38,7 @@ const controls = ['amp1', 'amp2', 'amp3', 'phase', 'noise'].map(id => document.g
 init();
 
 function init() {
+  if (window.matchMedia('(max-width: 980px)').matches) els.moduleDrawer.removeAttribute('open');
   renderAll();
   drawLab();
   bindEvents();
@@ -40,12 +46,19 @@ function init() {
 }
 
 function bindEvents() {
-  controls.forEach(input => input.addEventListener('input', drawLab));
+  controls.forEach(input => input.addEventListener('input', () => {
+    updateControlValues();
+    drawLab();
+  }));
+  document.querySelectorAll('[data-prediction]').forEach(btn => {
+    btn.addEventListener('click', () => choosePrediction(btn.dataset.prediction));
+  });
   document.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
       activePreset = btn.dataset.preset;
       document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
       applyPreset(activePreset);
+      updateControlAvailability();
       drawLab();
     });
   });
@@ -59,6 +72,7 @@ function bindEvents() {
   els.resetBtn.addEventListener('click', () => {
     if (!confirm('進捗・メモ・バッジをリセットしますか？')) return;
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
     location.reload();
   });
   els.todayBtn.addEventListener('click', () => document.getElementById('daily').scrollIntoView({ behavior: 'smooth' }));
@@ -68,10 +82,25 @@ function bindEvents() {
 
 function loadState() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || getDefaultState();
+    const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+    return normalizeState(stored ? JSON.parse(stored) : {});
   } catch {
     return getDefaultState();
   }
+}
+
+function normalizeState(saved) {
+  const defaults = getDefaultState();
+  return {
+    ...defaults,
+    ...saved,
+    completed: { ...defaults.completed, ...(saved.completed || {}) },
+    confidence: { ...defaults.confidence, ...(saved.confidence || {}) },
+    badges: { ...defaults.badges, ...(saved.badges || {}) },
+    quizCorrect: { ...defaults.quizCorrect, ...(saved.quizCorrect || {}) },
+    moduleChecks: { ...defaults.moduleChecks, ...(saved.moduleChecks || {}) },
+    labVisited: { ...defaults.labVisited, ...(saved.labVisited || {}) }
+  };
 }
 
 function getDefaultState() {
@@ -84,6 +113,9 @@ function getDefaultState() {
     notes: '',
     badges: {},
     quizCorrect: {},
+    moduleChecks: {},
+    labVisited: {},
+    missionPrediction: null,
     quizIndex: 0,
     selectedModuleId: 'm01'
   };
@@ -136,7 +168,26 @@ function getAverageConfidence() {
 
 function renderDaily() {
   const next = FOURIER_MODULES.find(m => !state.completed[m.id]) || FOURIER_MODULES[FOURIER_MODULES.length - 1];
-  els.dailyMissionText.innerHTML = `<strong>${next.title}</strong>：${next.drills[0]} <br><span class="muted">目安 ${Math.min(15, next.minutes)}分。完璧に理解するより、今日も接触することを勝ちにする。</span>`;
+  els.dailyMissionText.innerHTML = `位相だけを動かすと、<strong>周波数成分の強さ</strong>は変わる？ <span class="muted">予想後、ラボで位相を動かして確かめます。</span><br><small>次の学習：${next.title}（約${Math.min(15, next.minutes)}分）</small>`;
+  document.querySelectorAll('[data-prediction]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.prediction === state.missionPrediction);
+  });
+  els.completeDailyBtn.disabled = !state.missionPrediction;
+  els.missionFeedback.textContent = state.missionPrediction
+    ? '予想を保存しました。「答えを確認する」で観察ポイントを表示します。'
+    : '予想を選ぶと、波形ラボで確かめられます。';
+}
+
+function choosePrediction(prediction) {
+  state.missionPrediction = prediction;
+  saveState();
+  renderDaily();
+  activePreset = 'mix';
+  document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.preset === 'mix'));
+  applyPreset('mix');
+  document.getElementById('phase').value = prediction === 'change' ? '0.20' : '2.60';
+  updateControlValues();
+  drawLab();
 }
 
 function renderModules() {
@@ -157,6 +208,10 @@ function renderModules() {
       saveState();
       renderModules();
       renderLesson();
+      if (window.matchMedia('(max-width: 980px)').matches) {
+        els.moduleDrawer.removeAttribute('open');
+        els.lessonPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     });
   });
 }
@@ -186,6 +241,12 @@ function renderLesson() {
     ${lessonListBlock('ドリル', m.drills)}
     ${lessonTextBlock('実務演習', m.practice)}
     ${lessonTextBlock('チェックポイント', m.checkpoint)}
+    <div class="lesson-block lesson-lab-link">
+      <h3>操作して確かめる</h3>
+      <p>この章の説明を読むだけで終わらせず、波形と周波数成分を1回動かしてから理解チェックへ進みます。</p>
+      <button class="secondary-button" id="openLessonLabBtn" type="button">${state.labVisited[m.id] ? 'ラボ確認済み ✓' : '波形ラボを開く'}</button>
+    </div>
+    <section class="lesson-check" id="lessonCheckBox" aria-labelledby="lessonCheckTitle"></section>
     <div class="confidence-row">
       <strong>今の自信</strong>
       <div class="confidence-buttons">
@@ -193,12 +254,19 @@ function renderLesson() {
       </div>
     </div>
     <div class="action-row">
-      <button class="primary-button" id="completeModuleBtn" type="button">${done ? '完了済みを取り消す' : 'この章を完了'}</button>
+      <button class="primary-button" id="completeModuleBtn" type="button" ${done || isModuleReady(m.id) ? '' : 'disabled'}>${done ? '完了済みを取り消す' : 'ラボ＋2問正解で完了'}</button>
       <button class="secondary-button" id="nextModuleBtn" type="button">次の章へ</button>
     </div>
   `;
   document.getElementById('completeModuleBtn').addEventListener('click', () => toggleModule(m));
   document.getElementById('nextModuleBtn').addEventListener('click', goNextModule);
+  document.getElementById('openLessonLabBtn').addEventListener('click', () => {
+    state.labVisited[m.id] = true;
+    saveState();
+    renderLesson();
+    document.getElementById('lab').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  renderLessonCheck(m);
   els.lessonPanel.querySelectorAll('[data-confidence]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.confidence[m.id] = Number(btn.dataset.confidence);
@@ -210,15 +278,81 @@ function renderLesson() {
   });
 }
 
+function getLessonCheckQuestions(m) {
+  const others = FOURIER_MODULES.filter(item => item.id !== m.id);
+  return [
+    {
+      id: 'summary',
+      question: 'この章の要点として最も適切なのは？',
+      correct: m.checkpoint,
+      distractors: [others[(FOURIER_MODULES.indexOf(m) + 2) % others.length].checkpoint, others[(FOURIER_MODULES.indexOf(m) + 5) % others.length].checkpoint]
+    },
+    {
+      id: 'mistake',
+      question: 'この章で避けたい誤解として最も近いものは？',
+      correct: m.commonMistake,
+      distractors: [others[(FOURIER_MODULES.indexOf(m) + 1) % others.length].commonMistake, others[(FOURIER_MODULES.indexOf(m) + 4) % others.length].commonMistake]
+    }
+  ];
+}
+
+function renderLessonCheck(m) {
+  const box = document.getElementById('lessonCheckBox');
+  const progress = state.moduleChecks[m.id] || {};
+  const questions = getLessonCheckQuestions(m);
+  const correctCount = questions.filter(q => progress[q.id]).length;
+  box.innerHTML = `
+    <h3 id="lessonCheckTitle">資料を閉じて理解チェック</h3>
+    <p class="lesson-check-intro">2問とも正解すると、この章を完了できます。誤答しても何度でも試せます。</p>
+    ${questions.map((q, questionIndex) => {
+      const options = shuffleArray([q.correct, ...q.distractors].map(text => ({ text, correct: text === q.correct })));
+      return `<div class="lesson-check-question" data-check-id="${q.id}">
+        <strong>Q${questionIndex + 1}. ${q.question}</strong>
+        <div class="lesson-check-options">${options.map(option => `<button class="lesson-check-option ${progress[q.id] && option.correct ? 'correct' : ''}" data-correct="${option.correct}" type="button" ${progress[q.id] ? 'disabled' : ''}>${option.text}</button>`).join('')}</div>
+        <div class="lesson-check-feedback" aria-live="polite">${progress[q.id] ? '正解。自分の言葉でも説明してみよう。' : ''}</div>
+      </div>`;
+    }).join('')}
+    <p class="lesson-check-status">現在 ${correctCount}/2問正解</p>
+  `;
+  box.querySelectorAll('.lesson-check-option').forEach(btn => {
+    btn.addEventListener('click', () => answerLessonCheck(m, btn));
+  });
+}
+
+function answerLessonCheck(m, btn) {
+  const question = btn.closest('[data-check-id]');
+  const checkId = question.dataset.checkId;
+  const feedback = question.querySelector('.lesson-check-feedback');
+  question.querySelectorAll('.lesson-check-option').forEach(option => option.classList.remove('wrong'));
+  if (btn.dataset.correct === 'true') {
+    state.moduleChecks[m.id] = { ...(state.moduleChecks[m.id] || {}), [checkId]: true };
+    saveState();
+    renderLesson();
+    showToast(isModuleCheckPassed(m.id) ? '2問正解。この章を完了できます' : '正解。あと1問');
+  } else {
+    btn.classList.add('wrong');
+    feedback.textContent = 'もう一度。章の「チェックポイント」か「よくある誤解」を読み直してみよう。';
+  }
+}
+
+function isModuleCheckPassed(moduleId) {
+  const progress = state.moduleChecks[moduleId] || {};
+  return progress.summary === true && progress.mistake === true;
+}
+
+function isModuleReady(moduleId) {
+  return state.labVisited[moduleId] === true && isModuleCheckPassed(moduleId);
+}
+
 function lessonTextBlock(title, body) {
   if (!body) return '';
   const paragraphs = String(body).split('\n').filter(Boolean).map(text => `<p>${text}</p>`).join('');
-  return `<div class="lesson-block"><h4>${title}</h4>${paragraphs}</div>`;
+  return `<div class="lesson-block"><h3>${title}</h3>${paragraphs}</div>`;
 }
 
 function lessonListBlock(title, items) {
   if (!items || !items.length) return '';
-  return `<div class="lesson-block"><h4>${title}</h4><ul>${items.map(item => `<li>${item}</li>`).join('')}</ul></div>`;
+  return `<div class="lesson-block"><h3>${title}</h3><ul>${items.map(item => `<li>${item}</li>`).join('')}</ul></div>`;
 }
 
 function levelLabel(level) {
@@ -230,6 +364,10 @@ function toggleModule(m) {
     delete state.completed[m.id];
     state.xp = Math.max(0, state.xp - m.xp);
   } else {
+    if (!isModuleReady(m.id)) {
+      showToast('先にラボを開き、理解チェック2問に正解してください');
+      return;
+    }
     state.completed[m.id] = new Date().toISOString();
     state.xp += m.xp;
     unlockBadge('first');
@@ -250,12 +388,15 @@ function goNextModule() {
 }
 
 function completeDaily() {
-  const today = new Date().toISOString().slice(0, 10);
+  if (!state.missionPrediction) return;
+  const today = getJapanDateKey();
+  const correct = state.missionPrediction === 'same';
+  els.missionFeedback.textContent = `${correct ? '予想どおり。' : '答えは「ほぼ変わらない」。'} 位相は波形の開始位置を変えますが、理想的なDFTの振幅スペクトルでは各周波数成分の強さは変わりません。`;
   if (state.lastDaily === today) {
-    showToast('今日はもう完了済み。えらい。');
+    showToast('今日は完了済み。答えは何度でも確認できます');
     return;
   }
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const yesterday = getJapanDateKey(new Date(Date.now() - 86400000));
   state.streak = state.lastDaily === yesterday ? (state.streak || 0) + 1 : 1;
   state.lastDaily = today;
   state.xp += 15;
@@ -264,6 +405,14 @@ function completeDaily() {
   renderStatus();
   renderBadges();
   showToast('今日の一手を完了。15XP獲得！');
+}
+
+function getJapanDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
 }
 
 function saveNote() {
@@ -276,9 +425,10 @@ function saveNote() {
 
 function renderQuiz() {
   const q = FOURIER_QUIZ[quizIndex % FOURIER_QUIZ.length];
+  currentQuizView = shuffleArray(q.options.map((text, originalIndex) => ({ text, originalIndex })));
   els.quizBox.innerHTML = `
     <p><strong>Q${quizIndex + 1}.</strong> ${q.question}</p>
-    <div>${q.options.map((opt, i) => `<button class="quiz-option" data-index="${i}" type="button">${String.fromCharCode(65+i)}. ${opt}</button>`).join('')}</div>
+    <div>${currentQuizView.map((opt, i) => `<button class="quiz-option" data-original-index="${opt.originalIndex}" type="button">${String.fromCharCode(65+i)}. ${opt.text}</button>`).join('')}</div>
     <div class="quiz-feedback" id="quizFeedback">答えを選ぶと解説が出ます。</div>
     <button class="secondary-button" id="nextQuizBtn" type="button">次の問題</button>
   `;
@@ -291,24 +441,36 @@ function renderQuiz() {
 }
 
 function answerQuiz(q, btn) {
-  const chosen = Number(btn.dataset.index);
+  const chosen = Number(btn.dataset.originalIndex);
   const feedback = document.getElementById('quizFeedback');
-  els.quizBox.querySelectorAll('.quiz-option').forEach((option, i) => {
+  els.quizBox.querySelectorAll('.quiz-option').forEach(option => {
     option.disabled = true;
-    if (i === q.answer) option.classList.add('correct');
-    if (i === chosen && chosen !== q.answer) option.classList.add('wrong');
+    const originalIndex = Number(option.dataset.originalIndex);
+    if (originalIndex === q.answer) option.classList.add('correct');
+    if (option === btn && chosen !== q.answer) option.classList.add('wrong');
   });
   if (chosen === q.answer) {
     feedback.textContent = `正解。${q.explanation}`;
-    state.quizCorrect[quizIndex] = true;
-    state.xp += 10;
+    const firstCorrect = !state.quizCorrect[q.id];
+    state.quizCorrect[q.id] = true;
+    if (firstCorrect) state.xp += 10;
     unlockBadge('quiz');
+    if (!firstCorrect) feedback.textContent += ' この問題のXPは取得済みです。';
   } else {
     feedback.textContent = `惜しい。${q.explanation}`;
   }
   saveState();
   renderStatus();
   renderBadges();
+}
+
+function shuffleArray(items) {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 function unlockBadge(id) {
@@ -334,15 +496,42 @@ function renderSources() {
 function applyPreset(preset) {
   const values = {
     mix: [1.0, 0.55, 0.3, 0.8, 0.04],
-    square: [1.25, 0.0, 0.42, 0.0, 0.0],
+    square: [1.00, 0.0, 0.0, 0.0, 0.0],
     chirp: [0.8, 0.55, 0.35, 1.4, 0.03]
   }[preset];
   ['amp1','amp2','amp3','phase','noise'].forEach((id, i) => document.getElementById(id).value = values[i]);
+  updateControlValues();
 }
 
 function drawLab() {
+  updateControlValues();
   drawWave();
   drawSpectrum();
+}
+
+function updateControlValues() {
+  const format = (id, suffix = '') => {
+    const input = document.getElementById(id);
+    const output = document.getElementById(`${id}Value`);
+    if (input && output) output.textContent = `${Number(input.value).toFixed(2)}${suffix}`;
+  };
+  format('amp1');
+  format('amp2');
+  format('amp3');
+  format('phase', ' rad');
+  format('noise');
+}
+
+function updateControlAvailability() {
+  const disabledByPreset = {
+    mix: [],
+    square: ['amp2', 'amp3', 'phase'],
+    chirp: ['amp3']
+  }[activePreset] || [];
+  controls.forEach(control => {
+    control.disabled = disabledByPreset.includes(control.id);
+    control.closest('label').style.opacity = control.disabled ? '.45' : '1';
+  });
 }
 
 function getSignalSamples(n = 256) {
@@ -356,10 +545,10 @@ function getSignalSamples(n = 256) {
     const t = i / n;
     let y;
     if (activePreset === 'square') {
-      y = a1 * Math.sign(Math.sin(2 * Math.PI * 3 * t)) + a3 * Math.sin(2 * Math.PI * 9 * t) / 3;
+      y = a1 * Math.sign(Math.sin(2 * Math.PI * 3 * t));
     } else if (activePreset === 'chirp') {
-      const f = 2 + 10 * t;
-      y = a1 * Math.sin(2 * Math.PI * f * t + phase) + a2 * Math.sin(2 * Math.PI * 4 * t);
+      // 瞬時周波数 f(t)=2+10t を位相として積分すると 2t+5t^2 になる。
+      y = a1 * Math.sin(2 * Math.PI * (2 * t + 5 * t * t) + phase) + a2 * Math.sin(2 * Math.PI * 4 * t);
     } else {
       y = a1 * Math.sin(2 * Math.PI * 2 * t) + a2 * Math.sin(2 * Math.PI * 5 * t + phase) + a3 * Math.sin(2 * Math.PI * 11 * t - phase / 2);
     }
@@ -376,7 +565,7 @@ function drawWave() {
   const samples = getSignalSamples(512);
   clearCanvas(ctx, w, h);
   drawGrid(ctx, w, h);
-  const max = Math.max(1, ...samples.map(v => Math.abs(v)));
+  const max = 3.2;
   ctx.lineWidth = 4;
   ctx.strokeStyle = '#fb7185';
   ctx.beginPath();
@@ -386,7 +575,7 @@ function drawWave() {
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.stroke();
-  drawLabel(ctx, 'time', 18, h - 18);
+  drawAxisLabels(ctx, w, h, { x: '時間 t（秒）', y: '振幅', maxY: max });
 }
 
 function drawSpectrum() {
@@ -397,7 +586,7 @@ function drawSpectrum() {
   const mags = dftMagnitudes(samples).slice(1, 32);
   clearCanvas(ctx, w, h);
   drawGrid(ctx, w, h);
-  const max = Math.max(0.01, ...mags);
+  const max = 0.8;
   const gap = 5;
   const barW = (w - gap * (mags.length + 1)) / mags.length;
   mags.forEach((m, i) => {
@@ -410,7 +599,14 @@ function drawSpectrum() {
     roundRect(ctx, x, h - bh - 24, barW, bh, 9);
     ctx.fill();
   });
-  drawLabel(ctx, 'frequency bins', 18, h - 18);
+  drawAxisLabels(ctx, w, h, { x: '周波数ビン k（1秒区間ではHz）', y: '振幅', maxY: max, nonNegative: true });
+  const strongest = mags
+    .map((value, index) => ({ value, bin: index + 1 }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3)
+    .map(item => `${item.bin}Hz: ${item.value.toFixed(2)}`)
+    .join('、');
+  els.labSummary.textContent = `現在の主な成分：${strongest}。縦軸は0〜${max.toFixed(1)}で固定しているため、操作前後の強さを比較できます。`;
 }
 
 function dftMagnitudes(samples) {
@@ -445,10 +641,24 @@ function drawGrid(ctx, w, h) {
   }
 }
 
-function drawLabel(ctx, text, x, y) {
+function drawLabel(ctx, text, x, y, align = 'left') {
   ctx.fillStyle = 'rgba(255,255,255,.58)';
-  ctx.font = '700 16px system-ui, sans-serif';
+  ctx.font = '700 15px "Noto Sans JP", system-ui, sans-serif';
+  ctx.textAlign = align;
   ctx.fillText(text, x, y);
+  ctx.textAlign = 'left';
+}
+
+function drawAxisLabels(ctx, w, h, { x, y, maxY, nonNegative = false }) {
+  drawLabel(ctx, x, w - 18, h - 14, 'right');
+  drawLabel(ctx, y, 18, 24);
+  drawLabel(ctx, maxY.toFixed(1), 18, 48);
+  if (nonNegative) {
+    drawLabel(ctx, '0', 18, h - 34);
+  } else {
+    drawLabel(ctx, '0', 18, h / 2 - 8);
+    drawLabel(ctx, `-${maxY.toFixed(1)}`, 18, h - 34);
+  }
 }
 
 function roundRect(ctx, x, y, width, height, radius) {
@@ -476,6 +686,15 @@ function showToast(message) {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(registration => {
+      registration.addEventListener('updatefound', () => {
+        const worker = registration.installing;
+        worker?.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            showToast('新しい版を準備しました。次回表示から反映します');
+          }
+        });
+      });
+    }).catch(() => {});
   }
 }

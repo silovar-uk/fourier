@@ -31,10 +31,11 @@
       <section class="hero-grid">
         <div class="hero-copy">
           <p class="eyebrow">Fourier Transform Curriculum App</p>
-          <h1>波を「見て」、式を「後から理解する」。</h1>
-          <p class="lead">フーリエ変換を、音・画像・データ分析の直感から始めて、フーリエ級数、複素数、DFT/FFT、サンプリング、時間周波数解析まで段階的に進めます。</p>
+          <h1>まず60秒、波を分解してみる。</h1>
+          <p class="lead">予想して、触って、説明してから式へ進む。高校数学の三角関数を入口に、フーリエ級数、複素数、サンプリング、DFT/FFT、時間周波数解析まで段階的に学びます。</p>
           <div class="hero-cta">
-            <a class="primary-button" href="#curriculum">学習マップを見る</a>
+            <a class="primary-button" href="#daily">60秒ミッションを始める</a>
+            <a class="secondary-button" href="#curriculum">続きから学ぶ</a>
             <a class="secondary-button" href="#lab">波形ラボで触る</a>
           </div>
         </div>
@@ -62,13 +63,18 @@
     </header>
 
     <main>
-      <section class="panel daily-panel" id="daily">
-        <div>
-          <p class="section-kicker">Daily Micro Mission</p>
-          <h2>今日の一手</h2>
-          <p id="dailyMissionText">10分で進む課題を表示します。</p>
+      <section class="panel daily-panel" id="daily" aria-labelledby="dailyTitle">
+        <div class="daily-copy">
+          <p class="section-kicker">60-Second Mission</p>
+          <h2 id="dailyTitle">先に予想する</h2>
+          <p id="dailyMissionText">位相だけを動かすと、周波数成分の強さは変わる？</p>
+          <div class="prediction-row" aria-label="予想を選ぶ">
+            <button class="prediction-button" data-prediction="change" type="button">変わると思う</button>
+            <button class="prediction-button" data-prediction="same" type="button">変わらないと思う</button>
+          </div>
+          <p class="mission-feedback" id="missionFeedback" aria-live="polite">予想を選ぶと、波形ラボで確かめられます。</p>
         </div>
-        <button class="primary-button" id="completeDailyBtn" type="button">今日の一手を完了</button>
+        <button class="primary-button" id="completeDailyBtn" type="button" disabled>答えを確認する</button>
       </section>
 
       <section class="section" id="lab">
@@ -88,21 +94,22 @@
         <div class="lab-grid">
           <div class="canvas-card">
             <div class="canvas-title"><span>時間領域</span><strong>どんな形か</strong></div>
-            <canvas id="waveCanvas" width="860" height="320" aria-label="時間領域の波形グラフ"></canvas>
+            <canvas id="waveCanvas" width="860" height="320" role="img" aria-label="時間領域の波形。横軸は時間、縦軸は振幅。"></canvas>
           </div>
           <div class="canvas-card">
             <div class="canvas-title"><span>周波数領域</span><strong>何Hzが強いか</strong></div>
-            <canvas id="spectrumCanvas" width="860" height="320" aria-label="周波数成分の棒グラフ"></canvas>
+            <canvas id="spectrumCanvas" width="860" height="320" role="img" aria-label="周波数領域の棒グラフ。横軸は周波数ビン、縦軸は振幅。"></canvas>
           </div>
         </div>
 
         <div class="control-panel" aria-label="波形コントロール">
-          <label>低い波の強さ <input id="amp1" type="range" min="0" max="1.5" step="0.05" value="1.00"></label>
-          <label>真ん中の波の強さ <input id="amp2" type="range" min="0" max="1.5" step="0.05" value="0.55"></label>
-          <label>高い波の強さ <input id="amp3" type="range" min="0" max="1.5" step="0.05" value="0.30"></label>
-          <label>位相のずれ <input id="phase" type="range" min="0" max="6.28" step="0.01" value="0.80"></label>
-          <label>ノイズ <input id="noise" type="range" min="0" max="0.8" step="0.02" value="0.04"></label>
+          <label>低い波 2Hz <output id="amp1Value">1.00</output><input id="amp1" type="range" min="0" max="1.5" step="0.05" value="1.00"></label>
+          <label>真ん中の波 5Hz <output id="amp2Value">0.55</output><input id="amp2" type="range" min="0" max="1.5" step="0.05" value="0.55"></label>
+          <label>高い波 11Hz <output id="amp3Value">0.30</output><input id="amp3" type="range" min="0" max="1.5" step="0.05" value="0.30"></label>
+          <label>位相のずれ <output id="phaseValue">0.80 rad</output><input id="phase" type="range" min="0" max="6.28" step="0.01" value="0.80"></label>
+          <label>ノイズ <output id="noiseValue">0.04</output><input id="noise" type="range" min="0" max="0.8" step="0.02" value="0.04"></label>
         </div>
+        <p class="lab-summary" id="labSummary" aria-live="polite"></p>
       </section>
 
       <section class="section" id="curriculum">
@@ -121,7 +128,10 @@
           </div>
         </div>
         <div class="curriculum-layout">
-          <ol class="module-list" id="moduleList"></ol>
+          <details class="module-drawer" id="moduleDrawer" open>
+            <summary>全12章の学習地図</summary>
+            <ol class="module-list" id="moduleList"></ol>
+          </details>
           <article class="lesson-panel" id="lessonPanel" aria-live="polite"></article>
         </div>
       </section>
