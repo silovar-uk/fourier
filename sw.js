@@ -1,5 +1,5 @@
-const CACHE_NAME = 'fourier-quest-v4';
-const ASSETS = ['./', './index.html', './styles.css', './data.js', './app.js', './manifest.webmanifest', './icon.svg'];
+const CACHE_NAME = 'fourier-quest-v5';
+const ASSETS = ['./', './index.html', './styles.css?v=5', './data.js?v=5', './app.js?v=5', './manifest.webmanifest?v=5', './icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
