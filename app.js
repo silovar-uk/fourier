@@ -49,7 +49,10 @@ const els = {
   sampleCount: document.getElementById('sampleCount'),
   windowToggle: document.getElementById('windowToggle'),
   sampleCountValue: document.getElementById('sampleCountValue'),
-  windowToggleValue: document.getElementById('windowToggleValue')
+  windowToggleValue: document.getElementById('windowToggleValue'),
+  labGrid: document.querySelector('.lab-grid'),
+  controlPanel: document.querySelector('.control-panel'),
+  toggleAllControlsBtn: document.getElementById('toggleAllControlsBtn')
 };
 
 const controls = ['amp1', 'amp2', 'amp3', 'phase', 'noise', 'sampleCount'].map(id => document.getElementById(id));
@@ -86,6 +89,13 @@ function bindEvents() {
       markLabInteraction('preset');
       drawLab();
     });
+  });
+  document.querySelectorAll('.mobile-graph-tabs [data-mobile-graph]').forEach(btn => {
+    btn.addEventListener('click', () => setMobileGraph(btn.dataset.mobileGraph));
+  });
+  els.toggleAllControlsBtn.addEventListener('click', () => {
+    const showAll = els.controlPanel.classList.toggle('show-all');
+    els.toggleAllControlsBtn.textContent = showAll ? '章のつまみだけ' : 'ほかのつまみ';
   });
   document.querySelectorAll('.chip').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -489,6 +499,7 @@ function renderLabMission() {
     els.labMissionInstruction.textContent = 'スライダーをひとつ動かし、左右のグラフを見比べよう。';
     els.labMissionStatus.textContent = '自由モード';
     els.returnToLessonBtn.disabled = false;
+    configureMobileLab(null);
     return;
   }
   const m = FOURIER_MODULES.find(item => item.id === activeLabModuleId);
@@ -499,6 +510,35 @@ function renderLabMission() {
   els.labMissionStatus.textContent = done ? '✓ 観察できた' : '○ まだ';
   els.labMissionStatus.classList.toggle('done', done);
   els.returnToLessonBtn.disabled = !done;
+  configureMobileLab(exp, m.id);
+}
+
+function configureMobileLab(exp, moduleId = null) {
+  els.controlPanel.querySelectorAll('label').forEach(label => label.classList.remove('mission-target'));
+  document.querySelectorAll('.mode-tabs .tab').forEach(btn => btn.classList.remove('mission-target'));
+  els.controlPanel.classList.remove('show-all', 'preset-mission');
+  els.toggleAllControlsBtn.textContent = 'ほかのつまみ';
+  els.toggleAllControlsBtn.hidden = !exp;
+  if (!exp) {
+    els.controlPanel.classList.add('show-all');
+    setMobileGraph('wave');
+    return;
+  }
+  if (exp.control === 'preset') {
+    els.controlPanel.classList.add('preset-mission');
+    document.querySelector(`.mode-tabs [data-preset="${activePreset}"]`)?.classList.add('mission-target');
+  } else {
+    document.getElementById(exp.control)?.closest('label')?.classList.add('mission-target');
+  }
+  const spectrumModules = ['m04', 'm05', 'm08', 'm09', 'm10'];
+  setMobileGraph(spectrumModules.includes(moduleId) ? 'spectrum' : 'wave');
+}
+
+function setMobileGraph(graph) {
+  els.labGrid.dataset.mobileGraph = graph;
+  document.querySelectorAll('.mobile-graph-tabs [data-mobile-graph]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mobileGraph === graph);
+  });
 }
 
 function markLabInteraction(controlId) {

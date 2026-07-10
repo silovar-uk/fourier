@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#f7f4ed" />
   <meta name="description" content="フーリエ変換を、一歩ずつ触りながら大学レベルまで学ぶカリキュラムアプリ。" />
   <title>Fourier Quest｜フーリエ変換 学習アプリ</title>
-  <link rel="manifest" href="manifest.webmanifest?v=6" />
+  <link rel="manifest" href="manifest.webmanifest?v=7" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon.svg" />
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
 <body>
   <div class="app-shell">
@@ -89,9 +89,12 @@
             <div><p class="card-kicker">いま試すこと</p><h3 id="labMissionTitle">自由に波を動かす</h3><p id="labMissionInstruction">スライダーをひとつ動かし、左右のグラフを見比べよう。</p></div>
             <span class="lab-mission-status" id="labMissionStatus">○ まだ</span>
           </section>
-          <div class="lab-grid">
-            <div class="canvas-card"><div class="canvas-title"><span>時間で見る</span><strong>どんな形？</strong></div><canvas id="waveCanvas" width="860" height="320" role="img" aria-label="時間領域の波形。横軸は時間、縦軸は振幅。"></canvas></div>
-            <div class="canvas-card"><div class="canvas-title"><span>材料で見る</span><strong>何Hzが強い？</strong></div><canvas id="spectrumCanvas" width="860" height="320" role="img" aria-label="周波数領域の棒グラフ。横軸は周波数ビン、縦軸は振幅。"></canvas></div>
+          <div class="mobile-lab-toolbar" aria-label="スマートフォン用グラフ表示設定">
+            <div class="mobile-graph-tabs" role="group" aria-label="表示するグラフ">
+              <button class="active" data-mobile-graph="wave" type="button">波形</button>
+              <button data-mobile-graph="spectrum" type="button">周波数成分</button>
+            </div>
+            <button class="show-controls-button" id="toggleAllControlsBtn" type="button">ほかのつまみ</button>
           </div>
           <div class="control-panel" aria-label="波形コントロール">
             <label>低い波 2Hz <output id="amp1Value">1.00</output><input id="amp1" type="range" min="0" max="1.5" step="0.05" value="1.00"></label>
@@ -101,6 +104,10 @@
             <label>ノイズ <output id="noiseValue">0.04</output><input id="noise" type="range" min="0" max="0.8" step="0.02" value="0.04"></label>
             <label>サンプル数 <output id="sampleCountValue">128</output><input id="sampleCount" type="range" min="16" max="256" step="16" value="128"></label>
             <label class="toggle-control">窓関数 <output id="windowToggleValue">OFF</output><input id="windowToggle" type="checkbox"></label>
+          </div>
+          <div class="lab-grid" data-mobile-graph="wave">
+            <div class="canvas-card wave-card"><div class="canvas-title"><span>時間で見る</span><strong>どんな形？</strong></div><canvas id="waveCanvas" width="860" height="320" role="img" aria-label="時間領域の波形。横軸は時間、縦軸は振幅。"></canvas></div>
+            <div class="canvas-card spectrum-card"><div class="canvas-title"><span>材料で見る</span><strong>何Hzが強い？</strong></div><canvas id="spectrumCanvas" width="860" height="320" role="img" aria-label="周波数領域の棒グラフ。横軸は周波数ビン、縦軸は振幅。"></canvas></div>
           </div>
           <p class="lab-summary" id="labSummary" aria-live="polite"></p>
           <button class="primary-button lab-return" id="returnToLessonBtn" type="button">観察を終えて戻る →</button>
@@ -136,7 +143,7 @@
     </dialog>
   </div>
 
-  <script src="data.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="data.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
