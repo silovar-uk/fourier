@@ -34,30 +34,15 @@
             <p>先の全部を覚えなくて大丈夫。目の前の波をひとつ触れば、次の道が開きます。</p>
           </div>
 
-          <section class="quest-card" id="daily" aria-labelledby="dailyTitle">
-            <div class="quest-orb" aria-hidden="true"><span>?</span></div>
+          <section class="quest-card focus-card" id="continueCard" aria-labelledby="continueTitle">
+            <div class="quest-orb continue-orb" aria-hidden="true"><span id="continueModuleNo">01</span></div>
             <div class="quest-body">
-              <p class="card-kicker">60秒クエスト</p>
-              <h2 id="dailyTitle">まず、予想する</h2>
-              <p id="dailyMissionText">位相だけを動かすと、周波数成分の強さは変わる？</p>
-              <div class="prediction-row" aria-label="予想を選ぶ">
-                <button class="choice-button" data-prediction="change" type="button">変わる</button>
-                <button class="choice-button" data-prediction="same" type="button">変わらない</button>
-              </div>
-              <p class="mission-feedback" id="missionFeedback" aria-live="polite">どちらか選んでから、答えを見てみよう。</p>
-            </div>
-            <button class="round-next" id="completeDailyBtn" type="button" disabled aria-label="答えを確認する">→</button>
-          </section>
-
-          <section class="continue-card" id="continueCard" aria-labelledby="continueTitle">
-            <div class="continue-number" id="continueModuleNo">01</div>
-            <div class="continue-copy">
-              <p class="card-kicker">つづきから</p>
+              <p class="card-kicker" id="continueStepLabel">STEP 1 / 6</p>
               <h2 id="continueTitle">そもそも波とは何か</h2>
               <p id="continueSubtitle">変化を「量」として記録し、形として読む</p>
-              <div class="mini-progress"><span id="continueStepLabel">最初の一歩</span><span id="continueMinutes">約8分</span></div>
+              <div class="focus-next"><strong id="continueStepTitle">まず、予想する</strong><span id="continueMinutes">約4分</span></div>
             </div>
-            <button class="primary-button" id="continueLessonBtn" type="button">はじめる <span aria-hidden="true">→</span></button>
+            <button class="round-next" id="continueLessonBtn" type="button" aria-label="この一歩をはじめる">→</button>
           </section>
 
           <div class="journey-preview" id="journeyPreview" aria-label="現在地と次の章"></div>
@@ -100,6 +85,10 @@
               <button class="tab" data-preset="chirp" type="button">変わる波</button>
             </div>
           </div>
+          <section class="lab-mission" id="labMission" aria-live="polite">
+            <div><p class="card-kicker">いま試すこと</p><h3 id="labMissionTitle">自由に波を動かす</h3><p id="labMissionInstruction">スライダーをひとつ動かし、左右のグラフを見比べよう。</p></div>
+            <span class="lab-mission-status" id="labMissionStatus">○ まだ</span>
+          </section>
           <div class="lab-grid">
             <div class="canvas-card"><div class="canvas-title"><span>時間で見る</span><strong>どんな形？</strong></div><canvas id="waveCanvas" width="860" height="320" role="img" aria-label="時間領域の波形。横軸は時間、縦軸は振幅。"></canvas></div>
             <div class="canvas-card"><div class="canvas-title"><span>材料で見る</span><strong>何Hzが強い？</strong></div><canvas id="spectrumCanvas" width="860" height="320" role="img" aria-label="周波数領域の棒グラフ。横軸は周波数ビン、縦軸は振幅。"></canvas></div>
@@ -110,9 +99,11 @@
             <label>高い波 11Hz <output id="amp3Value">0.30</output><input id="amp3" type="range" min="0" max="1.5" step="0.05" value="0.30"></label>
             <label>開始位置 <output id="phaseValue">0.80 rad</output><input id="phase" type="range" min="0" max="6.28" step="0.01" value="0.80"></label>
             <label>ノイズ <output id="noiseValue">0.04</output><input id="noise" type="range" min="0" max="0.8" step="0.02" value="0.04"></label>
+            <label>サンプル数 <output id="sampleCountValue">128</output><input id="sampleCount" type="range" min="16" max="256" step="16" value="128"></label>
+            <label class="toggle-control">窓関数 <output id="windowToggleValue">OFF</output><input id="windowToggle" type="checkbox"></label>
           </div>
           <p class="lab-summary" id="labSummary" aria-live="polite"></p>
-          <button class="primary-button lab-return" id="returnToLessonBtn" type="button">学習に戻る →</button>
+          <button class="primary-button lab-return" id="returnToLessonBtn" type="button">観察を終えて戻る →</button>
         </div>
       </section>
 

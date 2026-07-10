@@ -7,6 +7,7 @@ let activePreset = 'mix';
 let quizIndex = state.quizIndex || 0;
 let currentQuizView = null;
 let activeScreen = 'home';
+let activeLabModuleId = null;
 
 const els = {
   moduleList: document.getElementById('moduleList'),
@@ -20,15 +21,12 @@ const els = {
   streakValue: document.getElementById('streakValue'),
   doneValue: document.getElementById('doneValue'),
   confidenceValue: document.getElementById('confidenceValue'),
-  dailyMissionText: document.getElementById('dailyMissionText'),
-  missionFeedback: document.getElementById('missionFeedback'),
   labSummary: document.getElementById('labSummary'),
   quizBox: document.getElementById('quizBox'),
   stuckNote: document.getElementById('stuckNote'),
   badgeGrid: document.getElementById('badgeGrid'),
   sourceList: document.getElementById('sourceList'),
   resetBtn: document.getElementById('resetBtn'),
-  completeDailyBtn: document.getElementById('completeDailyBtn'),
   saveNoteBtn: document.getElementById('saveNoteBtn'),
   topProgressBar: document.getElementById('topProgressBar'),
   mapDialog: document.getElementById('mapDialog'),
@@ -39,15 +37,22 @@ const els = {
   continueTitle: document.getElementById('continueTitle'),
   continueSubtitle: document.getElementById('continueSubtitle'),
   continueStepLabel: document.getElementById('continueStepLabel'),
+  continueStepTitle: document.getElementById('continueStepTitle'),
   continueMinutes: document.getElementById('continueMinutes'),
   continueLessonBtn: document.getElementById('continueLessonBtn'),
   continueCard: document.getElementById('continueCard'),
   journeyPreview: document.getElementById('journeyPreview'),
   returnToLessonBtn: document.getElementById('returnToLessonBtn'),
-  daily: document.getElementById('daily')
+  labMissionTitle: document.getElementById('labMissionTitle'),
+  labMissionInstruction: document.getElementById('labMissionInstruction'),
+  labMissionStatus: document.getElementById('labMissionStatus'),
+  sampleCount: document.getElementById('sampleCount'),
+  windowToggle: document.getElementById('windowToggle'),
+  sampleCountValue: document.getElementById('sampleCountValue'),
+  windowToggleValue: document.getElementById('windowToggleValue')
 };
 
-const controls = ['amp1', 'amp2', 'amp3', 'phase', 'noise'].map(id => document.getElementById(id));
+const controls = ['amp1', 'amp2', 'amp3', 'phase', 'noise', 'sampleCount'].map(id => document.getElementById(id));
 
 init();
 
@@ -63,11 +68,14 @@ function init() {
 
 function bindEvents() {
   controls.forEach(input => input.addEventListener('input', () => {
+    markLabInteraction(input.id);
     updateControlValues();
     drawLab();
   }));
-  document.querySelectorAll('[data-prediction]').forEach(btn => {
-    btn.addEventListener('click', () => choosePrediction(btn.dataset.prediction));
+  els.windowToggle.addEventListener('change', () => {
+    markLabInteraction('windowToggle');
+    updateControlValues();
+    drawLab();
   });
   document.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -75,6 +83,7 @@ function bindEvents() {
       document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
       applyPreset(activePreset);
       updateControlAvailability();
+      markLabInteraction('preset');
       drawLab();
     });
   });
@@ -91,10 +100,12 @@ function bindEvents() {
     localStorage.removeItem(LEGACY_STORAGE_KEY);
     location.reload();
   });
-  els.completeDailyBtn.addEventListener('click', completeDaily);
   els.saveNoteBtn.addEventListener('click', saveNote);
   document.querySelectorAll('[data-screen-target]').forEach(btn => {
-    btn.addEventListener('click', () => showScreen(btn.dataset.screenTarget));
+    btn.addEventListener('click', () => {
+      if (btn.dataset.screenTarget === 'lab') activeLabModuleId = null;
+      showScreen(btn.dataset.screenTarget);
+    });
   });
   els.continueLessonBtn.addEventListener('click', () => {
     const current = getCurrentModule();
@@ -103,7 +114,13 @@ function bindEvents() {
     renderLesson();
     showScreen('learn');
   });
-  els.returnToLessonBtn.addEventListener('click', () => showScreen('learn'));
+  els.returnToLessonBtn.addEventListener('click', () => {
+    if (activeLabModuleId && !state.labVisited[activeLabModuleId]) {
+      showToast('指定された操作をひとつ試してみよう');
+      return;
+    }
+    showScreen('learn');
+  });
   [els.openMapBtn, els.openMapFromLessonBtn].forEach(btn => btn.addEventListener('click', openMap));
   els.closeMapBtn.addEventListener('click', () => els.mapDialog.close());
   els.mapDialog.addEventListener('click', event => {
@@ -120,7 +137,10 @@ function showScreen(name) {
     btn.classList.toggle('active', btn.dataset.screenTarget === name);
   });
   if (name === 'learn') renderLesson();
-  if (name === 'lab') drawLab();
+  if (name === 'lab') {
+    renderLabMission();
+    drawLab();
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -150,7 +170,9 @@ function normalizeState(saved) {
     quizCorrect: { ...defaults.quizCorrect, ...(saved.quizCorrect || {}) },
     moduleChecks: { ...defaults.moduleChecks, ...(saved.moduleChecks || {}) },
     labVisited: { ...defaults.labVisited, ...(saved.labVisited || {}) },
-    lessonStepByModule: { ...defaults.lessonStepByModule, ...(saved.lessonStepByModule || {}) }
+    lessonStepByModule: { ...defaults.lessonStepByModule, ...(saved.lessonStepByModule || {}) },
+    lessonPredictions: { ...defaults.lessonPredictions, ...(saved.lessonPredictions || {}) },
+    lessonExplanations: { ...defaults.lessonExplanations, ...(saved.lessonExplanations || {}) }
   };
 }
 
@@ -167,6 +189,8 @@ function getDefaultState() {
     moduleChecks: {},
     labVisited: {},
     lessonStepByModule: {},
+    lessonPredictions: {},
+    lessonExplanations: {},
     missionPrediction: null,
     quizIndex: 0,
     selectedModuleId: 'm01'
@@ -181,7 +205,6 @@ function saveState() {
 
 function renderAll() {
   renderStatus();
-  renderDaily();
   renderHome();
   renderModules();
   renderLesson();
@@ -220,23 +243,6 @@ function getAverageConfidence() {
   return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
 }
 
-function renderDaily() {
-  els.dailyMissionText.innerHTML = `位相だけを動かすと、<strong>周波数成分の強さ</strong>は変わる？`;
-  document.querySelectorAll('[data-prediction]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.prediction === state.missionPrediction);
-  });
-  els.completeDailyBtn.disabled = !state.missionPrediction;
-  const completedToday = state.lastDaily === getJapanDateKey();
-  els.daily.classList.toggle('completed', completedToday);
-  els.daily.querySelector('.quest-orb span').textContent = completedToday ? '✓' : '?';
-  els.completeDailyBtn.textContent = completedToday ? '✓' : '→';
-  els.missionFeedback.textContent = completedToday
-    ? `${state.missionPrediction === 'same' ? '予想どおり。' : '答えは「ほぼ変わらない」。'} 位相は開始位置を変えますが、振幅スペクトルの強さは変わりません。`
-    : state.missionPrediction
-      ? '予想を保存しました。矢印で答えを確認しよう。'
-      : 'まず予想を選んでみよう。';
-}
-
 function getCurrentModule() {
   return FOURIER_MODULES.find(m => !state.completed[m.id]) || FOURIER_MODULES[FOURIER_MODULES.length - 1];
 }
@@ -250,14 +256,17 @@ function isModuleUnlocked(moduleId) {
 function renderHome() {
   const current = getCurrentModule();
   const index = FOURIER_MODULES.indexOf(current);
-  const stepCount = getLessonSteps(current).length;
+  const steps = getLessonSteps(current);
+  const stepCount = steps.length;
   const step = Math.min(state.lessonStepByModule[current.id] || 0, stepCount - 1);
   els.continueModuleNo.textContent = String(index + 1).padStart(2, '0');
   els.continueTitle.textContent = current.title;
   els.continueSubtitle.textContent = current.subtitle;
-  els.continueStepLabel.textContent = step === 0 ? '最初の一歩' : `${step + 1}/${stepCount} まで進行中`;
-  els.continueMinutes.textContent = `約${current.minutes}分`;
-  els.continueLessonBtn.innerHTML = state.completed[current.id] ? 'もう一度 <span aria-hidden="true">→</span>' : `${step ? 'つづきから' : 'はじめる'} <span aria-hidden="true">→</span>`;
+  els.continueStepLabel.textContent = `STEP ${step + 1} / ${stepCount}`;
+  els.continueStepTitle.textContent = steps[step].title;
+  els.continueMinutes.textContent = `この一歩 約${Math.max(3, Math.ceil(current.minutes / stepCount))}分`;
+  els.continueLessonBtn.textContent = '→';
+  els.continueLessonBtn.setAttribute('aria-label', `${step ? 'つづきから' : 'はじめる'}：${steps[step].title}`);
   const visible = [index - 1, index, index + 1].filter(i => i >= 0 && i < FOURIER_MODULES.length);
   els.journeyPreview.innerHTML = visible.map(i => {
     const m = FOURIER_MODULES[i];
@@ -265,18 +274,6 @@ function renderHome() {
     const mark = status === 'done' ? '✓' : String(i + 1).padStart(2, '0');
     return `<div class="journey-node ${status}"><div class="journey-dot">${mark}</div><strong>${i === index ? 'いまここ' : status === 'done' ? 'クリア' : 'つぎ'}</strong><small>${m.title}</small></div>`;
   }).join('');
-}
-
-function choosePrediction(prediction) {
-  state.missionPrediction = prediction;
-  saveState();
-  renderDaily();
-  activePreset = 'mix';
-  document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.preset === 'mix'));
-  applyPreset('mix');
-  document.getElementById('phase').value = prediction === 'change' ? '0.20' : '2.60';
-  updateControlValues();
-  drawLab();
 }
 
 function renderModules() {
@@ -307,11 +304,10 @@ function renderModules() {
 function renderLesson() {
   const m = FOURIER_MODULES.find(item => item.id === selectedModuleId) || FOURIER_MODULES[0];
   const done = !!state.completed[m.id];
-  const conf = state.confidence[m.id];
   const steps = getLessonSteps(m);
   const stepIndex = Math.min(state.lessonStepByModule[m.id] || 0, steps.length - 1);
   const step = steps[stepIndex];
-  const isFinal = stepIndex === steps.length - 1;
+  const canAdvance = canAdvanceLessonStep(m, stepIndex);
 
   els.lessonPanel.innerHTML = `
     <div class="lesson-top">
@@ -320,48 +316,104 @@ function renderLesson() {
         <h2>${m.title}</h2>
         <p>${m.subtitle}</p>
       </div>
-      <span class="level-pill">${levelLabel(m.level)} / ${m.minutes}分 / ${m.xp}XP</span>
+      <span class="level-pill">${levelLabel(m.level)} / 全${steps.length}歩 / ${m.xp}XP</span>
     </div>
-    <div class="concept-row">${m.concepts.map(c => `<span>${c}</span>`).join('')}</div>
+    <div class="concept-row"><span>今回 約${Math.max(3, Math.ceil(m.minutes / steps.length))}分</span>${m.concepts.slice(0, 4).map(c => `<span>${c}</span>`).join('')}</div>
     <div class="lesson-stepper">
       <div class="step-meta"><span class="step-count">${stepIndex + 1} / ${steps.length}</span><div class="step-track"><span style="width:${((stepIndex + 1) / steps.length) * 100}%"></span></div></div>
       <div class="lesson-step-content">
         <h3>${step.title}</h3>
-        ${isFinal ? renderFinalLessonStep(m, done, conf) : renderStepBody(step)}
+        ${renderLessonStep(m, stepIndex, done)}
       </div>
       <div class="step-actions">
         <button class="secondary-button" id="prevLessonStepBtn" type="button" ${stepIndex === 0 ? 'disabled' : ''}>← もどる</button>
         <div class="step-dots" aria-label="学習ステップ">${steps.map((_, i) => `<span class="${i === stepIndex ? 'active' : ''}"></span>`).join('')}</div>
-        ${isFinal
-          ? `<button class="primary-button" id="completeModuleBtn" type="button" ${done || isModuleReady(m.id) ? '' : 'disabled'}>${done ? '完了済み' : 'この章をクリア'}</button>`
-          : `<button class="primary-button" id="nextLessonStepBtn" type="button">${stepIndex === steps.length - 2 ? '確認へ' : 'わかった'} →</button>`}
+        ${stepIndex === steps.length - 1
+          ? `<button class="primary-button" id="completeModuleBtn" type="button" ${done || isModuleReady(m.id) ? '' : 'disabled'}>${done ? 'クリア済み ✓' : 'この章をクリア'}</button>`
+          : `<button class="primary-button" id="nextLessonStepBtn" type="button" ${canAdvance ? '' : 'disabled'}>${nextStepLabel(stepIndex)} →</button>`}
       </div>
     </div>
   `;
   document.getElementById('prevLessonStepBtn').addEventListener('click', () => setLessonStep(m, stepIndex - 1));
   document.getElementById('nextLessonStepBtn')?.addEventListener('click', () => setLessonStep(m, stepIndex + 1));
-  if (isFinal) bindFinalLessonStep(m);
+  bindLessonStep(m, stepIndex);
 }
 
 function getLessonSteps(m) {
   return [
-    { title: '今回のゴール', body: m.goal, callout: '覚えきらなくて大丈夫。まず「何が見えるようになるか」をつかもう。' },
-    { title: 'まず、やさしく', body: m.bridge },
-    { title: 'イメージを育てる', body: m.story },
-    { title: '教科書の言葉につなぐ', body: m.textbook },
-    { title: '式を、意味から読む', body: m.equation },
-    { title: 'どこで役立つ？', items: m.realWorld },
-    { title: 'ここに気をつける', body: m.commonMistake, callout: '間違いは、理解が進む途中のサインです。' },
-    { title: '手を動かしてみる', items: m.drills },
-    { title: 'できたか確かめる', final: true }
+    { title: 'まず、予想する', kind: 'predict' },
+    { title: '触って、確かめる', kind: 'act' },
+    { title: '自分の言葉にする', kind: 'explain' },
+    { title: '教科書と数式につなぐ', kind: 'formalize' },
+    { title: '資料を閉じて思い出す', kind: 'recall' },
+    { title: '現実で使って、クリア', kind: 'apply' }
   ];
 }
 
-function renderStepBody(step) {
-  const content = step.items
-    ? `<ul>${step.items.map(item => `<li>${item}</li>`).join('')}</ul>`
-    : String(step.body || '').split('\n').filter(Boolean).map(text => `<p>${text}</p>`).join('');
-  return `${content}${step.callout ? `<div class="step-callout">${step.callout}</div>` : ''}`;
+function getExperience(m) {
+  return FOURIER_EXPERIENCES[m.id];
+}
+
+function renderLessonStep(m, stepIndex, done) {
+  const exp = getExperience(m);
+  const prediction = state.lessonPredictions[m.id];
+  const explanation = state.lessonExplanations[m.id] || '';
+  if (stepIndex === 0) {
+    return `<div class="prediction-card">
+      <p class="step-lead">正解を覚える前に、いまの直感を置いてみよう。</p>
+      <p class="prediction-question">${exp.question}</p>
+      <div class="prediction-options">${exp.options.map((option, i) => `<button class="choice-button ${prediction === i ? 'active' : ''}" data-lesson-prediction="${i}" type="button">${option}</button>`).join('')}</div>
+      <p class="step-hint">間違っても失点はありません。予想が学びのスタートです。</p>
+    </div>`;
+  }
+  if (stepIndex === 1) {
+    return `<div class="action-step">
+      <div class="action-icon" aria-hidden="true">∿</div>
+      <p>${exp.task}</p>
+      <button class="primary-button" id="openLessonLabBtn" type="button">${state.labVisited[m.id] ? '操作できた ✓' : 'ラボで試す'} →</button>
+      <p class="step-hint">${state.labVisited[m.id] ? '観察できました。次は、起きたことを言葉にします。' : 'ラボでは指定された操作を1回すると、この一歩が完了します。'}</p>
+    </div>`;
+  }
+  if (stepIndex === 2) {
+    return `<div class="explain-step">
+      <div class="result-reveal"><span>${prediction === exp.answer ? '予想どおり' : 'ここが発見'}</span><p>${exp.observation}</p></div>
+      <p>${m.bridge}</p>
+      <label class="explanation-label" for="lessonExplanation">あなたの言葉で、理由を1文にすると？</label>
+      <textarea id="lessonExplanation" rows="3" placeholder="例：〜を動かすと、〜が変わった。なぜなら…">${explanation}</textarea>
+      <p class="step-hint" id="explanationHint">8文字以上で書くと次へ進めます。現在 ${explanation.trim().length}文字</p>
+    </div>`;
+  }
+  if (stepIndex === 3) {
+    return `<div class="formalize-step">
+      <p>${m.story}</p>
+      <div class="textbook-card"><span>教科書の言葉</span><p>${m.textbook}</p></div>
+      <div class="equation-card"><span>式を意味から読む</span><p>${m.equation}</p></div>
+      <details class="mistake-detail"><summary>よくある誤解も確認する</summary><p>${m.commonMistake}</p></details>
+    </div>`;
+  }
+  if (stepIndex === 4) {
+    return `<section class="lesson-check" id="lessonCheckBox" aria-labelledby="lessonCheckTitle"></section>`;
+  }
+  const conf = state.confidence[m.id];
+  return `<div class="lesson-final">
+    <p class="step-lead">最後は、知識を現実へ持ち出します。</p>
+    <div class="application-card"><span>今回の応用</span><p>${m.practice}</p></div>
+    <details class="application-examples"><summary>活用例を見る</summary><ul>${m.realWorld.map(item => `<li>${item}</li>`).join('')}</ul></details>
+    <div class="confidence-row"><strong>今の自信</strong><span>説明できそう？</span><div class="confidence-buttons">${[1,2,3,4,5].map(n => `<button class="${conf === n ? 'active' : ''}" data-confidence="${n}" type="button">${n}</button>`).join('')}</div></div>
+    ${done ? '<div class="step-callout">この章はクリア済みです。次の道が開いています。</div>' : '<p class="step-hint">自信度を選ぶとクリアできます。</p>'}
+  </div>`;
+}
+
+function nextStepLabel(stepIndex) {
+  return ['操作へ', '言葉にする', '教科書へ', '思い出す', '応用へ'][stepIndex] || '次へ';
+}
+
+function canAdvanceLessonStep(m, stepIndex) {
+  if (stepIndex === 0) return Number.isInteger(state.lessonPredictions[m.id]);
+  if (stepIndex === 1) return state.labVisited[m.id] === true;
+  if (stepIndex === 2) return (state.lessonExplanations[m.id] || '').trim().length >= 8;
+  if (stepIndex === 4) return isModuleCheckPassed(m.id);
+  return true;
 }
 
 function setLessonStep(m, index) {
@@ -373,33 +425,27 @@ function setLessonStep(m, index) {
   els.lessonPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function renderFinalLessonStep(m, done, conf) {
-  return `<div class="lesson-final">
-    <p><strong>最後は、自分の手で確かめます。</strong><br>${m.practice}</p>
-    <div class="step-callout">確認ポイント：${m.checkpoint}</div>
-    <div class="lesson-block lesson-lab-link">
-      <h3>1. ラボで動かす</h3>
-      <p>波形と周波数成分を1回動かして、説明と同じことが起きるか見てみよう。</p>
-      <button class="secondary-button" id="openLessonLabBtn" type="button">${state.labVisited[m.id] ? 'ラボ確認済み ✓' : '波形ラボを開く'}</button>
-    </div>
-    <section class="lesson-check" id="lessonCheckBox" aria-labelledby="lessonCheckTitle"></section>
-    <div class="confidence-row">
-      <strong>3. 今の自信</strong>
-      <div class="confidence-buttons">${[1,2,3,4,5].map(n => `<button class="${conf === n ? 'active' : ''}" data-confidence="${n}" type="button">${n}</button>`).join('')}</div>
-    </div>
-    ${done ? '<div class="step-callout">この章はクリア済みです。次の道が開いています。</div>' : ''}
-  </div>`;
-}
-
-function bindFinalLessonStep(m) {
-  document.getElementById('completeModuleBtn').addEventListener('click', () => toggleModule(m));
-  document.getElementById('openLessonLabBtn').addEventListener('click', () => {
-    state.labVisited[m.id] = true;
-    saveState();
-    renderLesson();
-    showScreen('lab');
+function bindLessonStep(m, stepIndex) {
+  els.lessonPanel.querySelectorAll('[data-lesson-prediction]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.lessonPredictions[m.id] = Number(btn.dataset.lessonPrediction);
+      recordDailyLearning();
+      saveState();
+      renderLesson();
+      renderHome();
+    });
   });
-  renderLessonCheck(m);
+  document.getElementById('openLessonLabBtn')?.addEventListener('click', () => openModuleLab(m));
+  const explanation = document.getElementById('lessonExplanation');
+  explanation?.addEventListener('input', () => {
+    state.lessonExplanations[m.id] = explanation.value;
+    saveState();
+    const ready = explanation.value.trim().length >= 8;
+    document.getElementById('nextLessonStepBtn').disabled = !ready;
+    document.getElementById('explanationHint').textContent = ready ? '自分の言葉にできました ✓' : `8文字以上で書くと次へ進めます。現在 ${explanation.value.trim().length}文字`;
+  });
+  if (stepIndex === 4) renderLessonCheck(m);
+  document.getElementById('completeModuleBtn')?.addEventListener('click', () => toggleModule(m));
   els.lessonPanel.querySelectorAll('[data-confidence]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.confidence[m.id] = Number(btn.dataset.confidence);
@@ -409,6 +455,59 @@ function bindFinalLessonStep(m) {
       showToast('自信度を保存しました');
     });
   });
+}
+
+function recordDailyLearning() {
+  const today = getJapanDateKey();
+  if (state.lastDaily === today) return;
+  const yesterday = getJapanDateKey(new Date(Date.now() - 86400000));
+  state.streak = state.lastDaily === yesterday ? (state.streak || 0) + 1 : 1;
+  state.lastDaily = today;
+  state.xp += 15;
+  if (state.streak >= 3) unlockBadge('daily3');
+  showToast('今日の一歩を開始。15XP獲得！');
+}
+
+function openModuleLab(m) {
+  activeLabModuleId = m.id;
+  const exp = getExperience(m);
+  activePreset = exp.preset === 'window' ? 'mix' : exp.preset;
+  document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.preset === activePreset));
+  applyPreset(activePreset);
+  if (exp.preset === 'window') {
+    els.windowToggle.checked = false;
+  }
+  updateControlAvailability();
+  renderLabMission();
+  drawLab();
+  showScreen('lab');
+}
+
+function renderLabMission() {
+  if (!activeLabModuleId) {
+    els.labMissionTitle.textContent = '自由に波を動かす';
+    els.labMissionInstruction.textContent = 'スライダーをひとつ動かし、左右のグラフを見比べよう。';
+    els.labMissionStatus.textContent = '自由モード';
+    els.returnToLessonBtn.disabled = false;
+    return;
+  }
+  const m = FOURIER_MODULES.find(item => item.id === activeLabModuleId);
+  const exp = getExperience(m);
+  const done = state.labVisited[m.id] === true;
+  els.labMissionTitle.textContent = `Module ${FOURIER_MODULES.indexOf(m) + 1} の実験`;
+  els.labMissionInstruction.textContent = exp.task;
+  els.labMissionStatus.textContent = done ? '✓ 観察できた' : '○ まだ';
+  els.labMissionStatus.classList.toggle('done', done);
+  els.returnToLessonBtn.disabled = !done;
+}
+
+function markLabInteraction(controlId) {
+  if (!activeLabModuleId) return;
+  const exp = getExperience(FOURIER_MODULES.find(m => m.id === activeLabModuleId));
+  if (exp.control !== controlId) return;
+  state.labVisited[activeLabModuleId] = true;
+  saveState();
+  renderLabMission();
 }
 
 function getLessonCheckQuestions(m) {
@@ -474,7 +573,11 @@ function isModuleCheckPassed(moduleId) {
 }
 
 function isModuleReady(moduleId) {
-  return state.labVisited[moduleId] === true && isModuleCheckPassed(moduleId);
+  return Number.isInteger(state.lessonPredictions[moduleId])
+    && state.labVisited[moduleId] === true
+    && (state.lessonExplanations[moduleId] || '').trim().length >= 8
+    && isModuleCheckPassed(moduleId)
+    && Number.isFinite(state.confidence[moduleId]);
 }
 
 function lessonTextBlock(title, body) {
@@ -498,7 +601,7 @@ function toggleModule(m) {
     return;
   } else {
     if (!isModuleReady(m.id)) {
-      showToast('先にラボを開き、理解チェック2問に正解してください');
+      showToast('6つの一歩を順番に完了してください');
       return;
     }
     state.completed[m.id] = new Date().toISOString();
@@ -529,28 +632,6 @@ function goNextModule() {
   saveState();
   renderModules();
   renderLesson();
-}
-
-function completeDaily() {
-  if (!state.missionPrediction) return;
-  const today = getJapanDateKey();
-  const correct = state.missionPrediction === 'same';
-  els.missionFeedback.textContent = `${correct ? '予想どおり。' : '答えは「ほぼ変わらない」。'} 位相は波形の開始位置を変えますが、理想的なDFTの振幅スペクトルでは各周波数成分の強さは変わりません。`;
-  if (state.lastDaily === today) {
-    showToast('今日は完了済み。答えは何度でも確認できます');
-    return;
-  }
-  const yesterday = getJapanDateKey(new Date(Date.now() - 86400000));
-  state.streak = state.lastDaily === yesterday ? (state.streak || 0) + 1 : 1;
-  state.lastDaily = today;
-  state.xp += 15;
-  if (state.streak >= 3) unlockBadge('daily3');
-  saveState();
-  renderStatus();
-  renderDaily();
-  renderHome();
-  renderBadges();
-  showToast('今日の一手を完了。15XP獲得！');
 }
 
 function getJapanDateKey(date = new Date()) {
@@ -666,6 +747,8 @@ function updateControlValues() {
   format('amp3');
   format('phase', ' rad');
   format('noise');
+  els.sampleCountValue.textContent = els.sampleCount.value;
+  els.windowToggleValue.textContent = els.windowToggle.checked ? 'ON' : 'OFF';
 }
 
 function updateControlAvailability() {
@@ -696,7 +779,8 @@ function getSignalSamples(n = 256) {
       // 瞬時周波数 f(t)=2+10t を位相として積分すると 2t+5t^2 になる。
       y = a1 * Math.sin(2 * Math.PI * (2 * t + 5 * t * t) + phase) + a2 * Math.sin(2 * Math.PI * 4 * t);
     } else {
-      y = a1 * Math.sin(2 * Math.PI * 2 * t) + a2 * Math.sin(2 * Math.PI * 5 * t + phase) + a3 * Math.sin(2 * Math.PI * 11 * t - phase / 2);
+      const middleFrequency = activeLabModuleId === 'm10' ? 5.5 : 5;
+      y = a1 * Math.sin(2 * Math.PI * 2 * t) + a2 * Math.sin(2 * Math.PI * middleFrequency * t + phase) + a3 * Math.sin(2 * Math.PI * 11 * t - phase / 2);
     }
     const deterministicNoise = noise * Math.sin(2 * Math.PI * 37 * t + 1.7) * Math.cos(2 * Math.PI * 19 * t);
     samples.push(y + deterministicNoise);
@@ -721,6 +805,16 @@ function drawWave() {
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.stroke();
+  const sampleCount = Number(els.sampleCount.value);
+  if (sampleCount <= 64) {
+    const points = getSignalSamples(sampleCount);
+    ctx.fillStyle = '#f5b83d';
+    points.forEach((v, i) => {
+      const x = i / sampleCount * w;
+      const y = h / 2 - (v / max) * (h * 0.36);
+      ctx.fillRect(x - 4, y - 4, 8, 8);
+    });
+  }
   drawAxisLabels(ctx, w, h, { x: '時間 t（秒）', y: '振幅', maxY: max });
 }
 
@@ -728,8 +822,12 @@ function drawSpectrum() {
   const canvas = els.spectrumCanvas;
   const ctx = canvas.getContext('2d');
   const { width: w, height: h } = canvas;
-  const samples = getSignalSamples(128);
-  const mags = dftMagnitudes(samples).slice(1, 32);
+  const sampleCount = Number(els.sampleCount.value);
+  let samples = getSignalSamples(sampleCount);
+  if (els.windowToggle.checked) {
+    samples = samples.map((value, i) => value * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (samples.length - 1))));
+  }
+  const mags = dftMagnitudes(samples).slice(1, Math.min(32, Math.floor(sampleCount / 2)));
   clearCanvas(ctx, w, h);
   drawGrid(ctx, w, h);
   const max = 0.8;
@@ -752,7 +850,7 @@ function drawSpectrum() {
     .slice(0, 3)
     .map(item => `${item.bin}Hz: ${item.value.toFixed(2)}`)
     .join('、');
-  els.labSummary.textContent = `現在の主な成分：${strongest}。縦軸は0〜${max.toFixed(1)}で固定しているため、操作前後の強さを比較できます。`;
+  els.labSummary.textContent = `現在の主な成分：${strongest}。サンプル数 ${sampleCount}、窓関数 ${els.windowToggle.checked ? 'ON' : 'OFF'}。縦軸は0〜${max.toFixed(1)}で固定しています。`;
 }
 
 function dftMagnitudes(samples) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fourier-quest-v3';
+const CACHE_NAME = 'fourier-quest-v4';
 const ASSETS = ['./', './index.html', './styles.css', './data.js', './app.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {

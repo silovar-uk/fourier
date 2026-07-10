@@ -447,6 +447,81 @@ const FOURIER_MODULES = [
 // サンプリング（m09）をDFT/FFT（m08）より前へ置く。
 FOURIER_MODULES.splice(7, 2, FOURIER_MODULES[8], FOURIER_MODULES[7]);
 
+const FOURIER_EXPERIENCES = {
+  m01: {
+    question: '1週間の来場者数は、物理的な波でなくてもフーリエ解析の対象にできる？',
+    options: ['できる', 'できない'], answer: 0,
+    observation: 'できる。波そのものでなくても、時間や場所に沿って変わる量なら「信号」として記録し、周期を調べられる。',
+    preset: 'mix', control: 'amp1', task: '「低い波 2Hz」を大きくして、時間の形と周波数の棒が同時に変わるか見よう。'
+  },
+  m02: {
+    question: '位相だけを変えると、波の開始位置と周波数成分の強さはどうなる？',
+    options: ['位置だけ変わる', '強さも大きく変わる'], answer: 0,
+    observation: '位相は波の横方向のずれを変える。理想的なDFTでは、同じ周波数成分の振幅はほぼ変わらない。',
+    preset: 'mix', control: 'phase', task: '「開始位置」を左右に動かし、左の波形と右の棒グラフを見比べよう。'
+  },
+  m03: {
+    question: '高い周波数の波を足すと、合成波の細かな変化はどうなる？',
+    options: ['増える', '減る'], answer: 0,
+    observation: '高周波成分を足すと、時間波形には細かな揺れが増える。完成形が複雑でも、成分表なら材料が見える。',
+    preset: 'mix', control: 'amp3', task: '「高い波 11Hz」を0から大きくし、細かな揺れが加わる様子を見よう。'
+  },
+  m04: {
+    question: '信号に5Hzの波が多く含まれるほど、5Hzの基準波との内積はどうなる？',
+    options: ['大きくなる', '小さくなる'], answer: 0,
+    observation: '同じ形・向きの成分が多いほど内積は大きくなる。フーリエ係数は「その周波数との似ている度合い」と読める。',
+    preset: 'mix', control: 'amp2', task: '「真ん中 5Hz」を上下させ、右の5Hz付近の棒だけが反応するか確かめよう。'
+  },
+  m05: {
+    question: '四角い波をなめらかな波の足し算で近づけるには、1種類だけで十分？',
+    options: ['たくさん必要', '1種類で十分'], answer: 0,
+    observation: '角や急な変化を表すには複数の高調波が必要になる。不連続点の近くには、項を増やしても揺れが残る。',
+    preset: 'square', control: 'preset', task: '「四角い波」を選び、右側に複数の奇数次成分が並ぶことを見よう。'
+  },
+  m06: {
+    question: '複素数を使う主な利点は、振幅と位相を1つの値で扱えること？',
+    options: ['そのとおり', '関係ない'], answer: 0,
+    observation: '複素数の大きさが振幅、角度が位相に対応する。回転する矢印として見ると、sinとcosをまとめて扱える。',
+    preset: 'mix', control: 'phase', task: '「開始位置」を動かし、振幅を保ったまま波が横へずれる様子を見よう。'
+  },
+  m07: {
+    question: '一度だけ鳴る拍手のような非周期信号も、周波数成分に分けられる？',
+    options: ['分けられる', '分けられない'], answer: 0,
+    observation: 'フーリエ変換は周期的でない信号も連続的な周波数成分へ写せる。逆変換で元の信号へ戻せる。',
+    preset: 'chirp', control: 'preset', task: '「変わる波」を選び、時間で周波数が変わる信号にも成分表が作られることを見よう。'
+  },
+  m09: {
+    question: '11Hzの波を1秒に16回しか測らないと、元の11Hzとして正しく見える？',
+    options: ['別の低い周波数に見える', '正しく11Hzに見える'], answer: 0,
+    observation: '標本化周波数の半分を超える成分は、別の低い周波数として見える。これがエイリアシングである。',
+    preset: 'mix', control: 'sampleCount', task: 'サンプル数を16まで下げ、11Hzの成分が別の位置へ折り返す様子を見よう。'
+  },
+  m08: {
+    question: 'FFTは、DFTとは別の変換そのもの？',
+    options: ['DFTを速く計算する方法', 'まったく別の変換'], answer: 0,
+    observation: 'DFTは変換の定義、FFTは同じDFTを効率よく計算するアルゴリズム。結果の意味は変わらない。',
+    preset: 'mix', control: 'sampleCount', task: 'サンプル数を変え、有限個の値が有限個の周波数ビンへ対応する様子を見よう。'
+  },
+  m10: {
+    question: '信号を途中でぶつ切りにすると、なかった周波数まで広がって見えることがある？',
+    options: ['ある', 'ない'], answer: 0,
+    observation: '有限区間で急に切ると端に不連続が生まれ、スペクトル漏れが起きる。窓関数は端をなめらかにして漏れを抑える。',
+    preset: 'window', control: 'windowToggle', task: '「窓関数」をON/OFFし、主成分の周りに広がる棒の変化を比べよう。'
+  },
+  m11: {
+    question: '信号全体を一度だけフーリエ変換すると、「いつ」周波数が変わったか分かる？',
+    options: ['分かりにくい', 'はっきり分かる'], answer: 0,
+    observation: '全体のスペクトルは含まれる周波数を示すが、出た時刻を失う。短い区間ごとに変換するSTFTで時間変化を残せる。',
+    preset: 'chirp', control: 'preset', task: '「変わる波」を選び、時間で高さが変わるのに全体スペクトルでは時刻が消えることを確かめよう。'
+  },
+  m12: {
+    question: 'フーリエ解析の結果だけで、現象が起きた原因まで自動的に分かる？',
+    options: ['原因は別に検証する', '原因まで必ず分かる'], answer: 0,
+    observation: 'スペクトルは構造を見せるが、因果関係までは保証しない。仮説、測定条件、別データと合わせて解釈する。',
+    preset: 'mix', control: 'noise', task: '成分とノイズを自由に変え、「見えた成分」と「その原因」を分けて説明してみよう。'
+  }
+};
+
 const FOURIER_QUIZ = [
   {
     "id": "q01",
