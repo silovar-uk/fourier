@@ -134,6 +134,21 @@ h3 { margin: 0; font-size: 22px; }
 .lesson-step-content p, .lesson-step-content li { color: #494b50; font-size: 17px; line-height: 2; }
 .lesson-step-content ul { padding-left: 1.35em; }
 .step-lead { color: var(--muted) !important; font-size: 15px !important; }
+.reading-step { width: 100%; }
+.reading-progress { margin: 0 0 10px; color: var(--accent) !important; font-size: 11px !important; font-weight: 1000; letter-spacing: .1em; }
+.reading-lead { margin: 0 0 10px; color: var(--muted) !important; font-size: 13px !important; font-weight: 900; }
+.learning-goal, .reading-summary, .mistake-card, .reading-drills { margin: 15px 0; padding: 18px 20px; border-radius: var(--radius-lg); }
+.learning-goal { border-left: 5px solid var(--blue); background: var(--blue-soft); }
+.learning-goal > span, .mistake-card > span { display: block; margin-bottom: 6px; color: #245d6b; font-size: 11px; font-weight: 1000; letter-spacing: .08em; }
+.learning-goal p, .reading-summary p, .mistake-card p { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.85; }
+.reading-body { max-width: 68ch; }
+.reading-body p { margin: 0 0 14px; }
+.reading-summary { background: #f3eee1; }
+.reading-summary strong { display: block; margin-bottom: 5px; color: #765a20; font-size: 12px; }
+.term-guide { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-top: 18px; }
+.term-guide section { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--paper); }
+.term-guide strong { color: var(--ink); font-size: 14px; }
+.term-guide p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .prediction-question { margin: 24px 0; color: var(--ink) !important; font-size: clamp(22px,3vw,30px) !important; font-weight: 900; line-height: 1.55 !important; }
 .prediction-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .prediction-options .choice-button { min-height: 58px; border-radius: var(--radius-md); }
@@ -146,6 +161,12 @@ h3 { margin: 0; font-size: 22px; }
 .textbook-card { background: var(--blue-soft); }
 .equation-card { background: #f3eee1; border-left: 5px solid var(--sun); }
 .application-card { background: var(--accent-soft); }
+.mistake-card { border: 1px solid #f0c2b7; background: #fff2ed; }
+.mistake-card > span { color: var(--accent-dark); }
+.reading-drills { background: #f2efe8; }
+.reading-drills > strong { font-size: 14px; }
+.reading-drills ol { margin: 10px 0 0; padding-left: 1.3em; }
+.reading-drills li { margin-top: 5px; font-size: 14px; line-height: 1.75; }
 .result-reveal > span, .textbook-card > span, .equation-card > span, .application-card > span { display: block; margin-bottom: 7px; color: var(--blue); font-size: 11px; font-weight: 1000; letter-spacing: .08em; }
 .result-reveal p, .textbook-card p, .equation-card p, .application-card p { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.85; }
 .explanation-label { display: block; margin-top: 24px; font-weight: 900; }
@@ -325,6 +346,9 @@ textarea { width: 100%; margin-top: 14px; resize: vertical; border: 2px solid va
   .level-pill { white-space: normal; }
   .lesson-step-content { min-height: 330px; }
   .lesson-step-content p, .lesson-step-content li { font-size: 16px; line-height: 1.85; }
+  .term-guide { grid-template-columns: 1fr; }
+  .term-guide section { padding: 14px 15px; }
+  .learning-goal, .reading-summary, .mistake-card, .reading-drills { padding: 16px; border-radius: 18px; }
   .step-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .step-dots { grid-column: 1 / -1; grid-row: 1; }
   [data-screen="lab"] .screen-head { margin-bottom: 8px; }

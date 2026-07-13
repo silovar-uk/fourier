@@ -351,10 +351,12 @@ function renderLesson() {
 
 function getLessonSteps(m) {
   return [
-    { title: 'まず、予想する', kind: 'predict' },
+    { title: 'まず、章の入口を読む', kind: 'overview' },
+    { title: '大事な言葉をつかむ', kind: 'concepts' },
+    { title: '読んだあとに、予想する', kind: 'predict' },
     { title: '触って、確かめる', kind: 'act' },
     { title: '自分の言葉にする', kind: 'explain' },
-    { title: '教科書と数式につなぐ', kind: 'formalize' },
+    { title: '数式まで、きちんと読む', kind: 'formalize' },
     { title: '資料を閉じて思い出す', kind: 'recall' },
     { title: '現実で使って、クリア', kind: 'apply' }
   ];
@@ -369,14 +371,34 @@ function renderLessonStep(m, stepIndex, done) {
   const prediction = state.lessonPredictions[m.id];
   const explanation = state.lessonExplanations[m.id] || '';
   if (stepIndex === 0) {
+    return `<article class="reading-step">
+      <p class="reading-progress">読む 1 / 3</p>
+      <p class="reading-lead">この章で答えられるようになる問い</p>
+      <div class="learning-goal"><span>学習目標</span><p>${m.goal}</p></div>
+      <div class="reading-body"><p>${m.story}</p></div>
+      <div class="reading-summary"><strong>この章の着地点</strong><p>${m.checkpoint}</p></div>
+    </article>`;
+  }
+  if (stepIndex === 1) {
+    const notes = FOURIER_READING_NOTES[m.id] || [];
+    return `<article class="reading-step">
+      <p class="reading-progress">読む 2 / 3</p>
+      <div class="reading-body"><p>${m.bridge}</p><p>${m.textbook}</p></div>
+      <div class="term-guide" aria-label="重要語句">
+        ${notes.map(([term, definition]) => `<section><strong>${term}</strong><p>${definition}</p></section>`).join('')}
+      </div>
+      <p class="step-hint">用語を丸暗記せず、「何を表す言葉か」を一つずつ確認しよう。</p>
+    </article>`;
+  }
+  if (stepIndex === 2) {
     return `<div class="prediction-card">
-      <p class="step-lead">正解を覚える前に、いまの直感を置いてみよう。</p>
+      <p class="step-lead">読んだ内容を使い、実験の結果を先に考えよう。</p>
       <p class="prediction-question">${exp.question}</p>
       <div class="prediction-options">${exp.options.map((option, i) => `<button class="choice-button ${prediction === i ? 'active' : ''}" data-lesson-prediction="${i}" type="button">${option}</button>`).join('')}</div>
       <p class="step-hint">間違っても失点はありません。予想が学びのスタートです。</p>
     </div>`;
   }
-  if (stepIndex === 1) {
+  if (stepIndex === 3) {
     return `<div class="action-step">
       <div class="action-icon" aria-hidden="true">∿</div>
       <p>${exp.task}</p>
@@ -384,24 +406,24 @@ function renderLessonStep(m, stepIndex, done) {
       <p class="step-hint">${state.labVisited[m.id] ? '観察できました。次は、起きたことを言葉にします。' : 'ラボでは指定された操作を1回すると、この一歩が完了します。'}</p>
     </div>`;
   }
-  if (stepIndex === 2) {
+  if (stepIndex === 4) {
     return `<div class="explain-step">
       <div class="result-reveal"><span>${prediction === exp.answer ? '予想どおり' : 'ここが発見'}</span><p>${exp.observation}</p></div>
-      <p>${m.bridge}</p>
       <label class="explanation-label" for="lessonExplanation">あなたの言葉で、理由を1文にすると？</label>
       <textarea id="lessonExplanation" rows="3" placeholder="例：〜を動かすと、〜が変わった。なぜなら…">${explanation}</textarea>
       <p class="step-hint" id="explanationHint">8文字以上で書くと次へ進めます。現在 ${explanation.trim().length}文字</p>
     </div>`;
   }
-  if (stepIndex === 3) {
-    return `<div class="formalize-step">
-      <p>${m.story}</p>
-      <div class="textbook-card"><span>教科書の言葉</span><p>${m.textbook}</p></div>
+  if (stepIndex === 5) {
+    return `<article class="formalize-step reading-step">
+      <p class="reading-progress">読む 3 / 3</p>
       <div class="equation-card"><span>式を意味から読む</span><p>${m.equation}</p></div>
-      <details class="mistake-detail"><summary>よくある誤解も確認する</summary><p>${m.commonMistake}</p></details>
-    </div>`;
+      <div class="mistake-card"><span>ここを区別する</span><p>${m.commonMistake}</p></div>
+      <div class="reading-drills"><strong>読みながら考える3問</strong><ol>${m.drills.map(item => `<li>${item}</li>`).join('')}</ol></div>
+      <p class="step-hint">式を計算できなくても、記号が何を入力し、何を出力するか説明できれば前進です。</p>
+    </article>`;
   }
-  if (stepIndex === 4) {
+  if (stepIndex === 6) {
     return `<section class="lesson-check" id="lessonCheckBox" aria-labelledby="lessonCheckTitle"></section>`;
   }
   const conf = state.confidence[m.id];
@@ -415,14 +437,14 @@ function renderLessonStep(m, stepIndex, done) {
 }
 
 function nextStepLabel(stepIndex) {
-  return ['操作へ', '言葉にする', '教科書へ', '思い出す', '応用へ'][stepIndex] || '次へ';
+  return ['用語へ', '予想へ', '操作へ', '言葉にする', '数式へ', '思い出す', '応用へ'][stepIndex] || '次へ';
 }
 
 function canAdvanceLessonStep(m, stepIndex) {
-  if (stepIndex === 0) return Number.isInteger(state.lessonPredictions[m.id]);
-  if (stepIndex === 1) return state.labVisited[m.id] === true;
-  if (stepIndex === 2) return (state.lessonExplanations[m.id] || '').trim().length >= 8;
-  if (stepIndex === 4) return isModuleCheckPassed(m.id);
+  if (stepIndex === 2) return Number.isInteger(state.lessonPredictions[m.id]);
+  if (stepIndex === 3) return state.labVisited[m.id] === true;
+  if (stepIndex === 4) return (state.lessonExplanations[m.id] || '').trim().length >= 8;
+  if (stepIndex === 6) return isModuleCheckPassed(m.id);
   return true;
 }
 
@@ -454,7 +476,7 @@ function bindLessonStep(m, stepIndex) {
     document.getElementById('nextLessonStepBtn').disabled = !ready;
     document.getElementById('explanationHint').textContent = ready ? '自分の言葉にできました ✓' : `8文字以上で書くと次へ進めます。現在 ${explanation.value.trim().length}文字`;
   });
-  if (stepIndex === 4) renderLessonCheck(m);
+  if (stepIndex === 6) renderLessonCheck(m);
   document.getElementById('completeModuleBtn')?.addEventListener('click', () => toggleModule(m));
   els.lessonPanel.querySelectorAll('[data-confidence]').forEach(btn => {
     btn.addEventListener('click', () => {
